@@ -1,4 +1,5 @@
 import { Link } from "expo-router";
+import { Pressable } from "react-native";
 import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 
 const features = [
@@ -17,6 +18,9 @@ export default function WelcomeScreen() {
         <Text style={styles.eyebrow}>ROTARY • ROTARACT • FELLOWSHIP</Text>
         <Text style={styles.logo}>KIMEZA <Text style={styles.logoAccent}>PLAY</Text></Text>
         <Text style={styles.tagline}>Bring the fellowship to life.</Text>
+        <View style={styles.actions}>
+          <Link href="/auth" asChild><Pressable style={styles.primaryButton}><Text style={styles.primaryButtonText}>Create account / Sign in</Text></Pressable></Link>
+        </View>
         <Text style={styles.intro}>
           A shared space for Rotary and Rotaract members to play, connect and
           celebrate friendly competition — wherever they are.
@@ -53,6 +57,9 @@ const styles = StyleSheet.create({
   logoAccent: { color: "#D69A36" },
   tagline: { color: "#102A24", fontSize: 25, fontWeight: "700", marginTop: 8 },
   intro: { color: "#53645D", fontSize: 16, lineHeight: 25, maxWidth: 650, marginTop: 14 },
+  actions: { marginTop: 22, alignSelf: "flex-start" },
+  primaryButton: { backgroundColor: "#153B30", borderRadius: 12, paddingVertical: 14, paddingHorizontal: 20 },
+  primaryButtonText: { color: "#FFFFFF", fontWeight: "800", fontSize: 14 },
   cards: { marginTop: 34, gap: 14 },
   cardsWide: { flexDirection: "row" },
   card: { flex: 1, minHeight: 150, backgroundColor: "#FFFFFF", borderRadius: 18, padding: 20, borderWidth: 1, borderColor: "#E2E9E3" },
