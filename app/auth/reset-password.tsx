@@ -20,9 +20,13 @@ export default function ResetPasswordScreen() {
       try {
         const parsed = Linking.parse(url);
         const code = typeof parsed.queryParams?.code === "string" ? parsed.queryParams.code : null;
+        const tokenHash = typeof parsed.queryParams?.token_hash === "string" ? parsed.queryParams.token_hash : null;
         if (code) {
           const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
           if (exchangeError) throw exchangeError;
+        } else if (tokenHash) {
+          const { error: verifyError } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: "recovery" });
+          if (verifyError) throw verifyError;
         }
         if (active) setReady(true);
       } catch (e) {
