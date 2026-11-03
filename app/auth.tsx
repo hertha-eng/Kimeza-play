@@ -5,7 +5,8 @@ import { supabase } from "../src/lib/supabase";
 
 type Mode = "register" | "login" | "forgot";
 
-export default function AuthScreen() {\n  const router = useRouter();
+export default function AuthScreen() {
+  const router = useRouter();
   const [mode, setMode] = useState<Mode>("register");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -23,30 +24,37 @@ export default function AuthScreen() {\n  const router = useRouter();
     if (!cleanEmail) { setError("Enter your email address."); return; }
     if (mode !== "forgot" && password.length < 8) { setError("Your password must contain at least 8 characters."); return; }
     if (mode === "register" && !name.trim()) { setError("Enter your full name."); return; }
+
     setBusy(true);
     try {
       if (mode === "forgot") {
-        const { error: e } = await supabase.auth.resetPasswordForEmail(cleanEmail);
+        const { error: e } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
+          redirectTo: "kimezaplay://auth/reset-password"
+        });
         if (e) throw e;
         setMessage("If an account exists for that email, password reset instructions will be sent.");
       } else if (mode === "login") {
         const { error: e } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
         if (e) throw e;
-        setMessage("You are signed in successfully.");\n        router.replace("/");
+        router.replace("/dashboard");
       } else {
         const { data, error: e } = await supabase.auth.signUp({
           email: cleanEmail,
           password,
-          options: { data: { display_name: name.trim() } }
+          options: {
+            data: { display_name: name.trim() },
+            emailRedirectTo: "kimezaplay://"
+          }
         });
         if (e) throw e;
-        setMessage(data.session
-          ? "Your account has been created and you are signed in."
-          : "Registration received. Check your email for the confirmation link before signing in.");
+        if (data.session) router.replace("/dashboard");
+        else setMessage("Registration received. Check your email for the confirmation link before signing in.");
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong. Please try again.");
-    } finally { setBusy(false); }
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -56,14 +64,16 @@ export default function AuthScreen() {\n  const router = useRouter();
           <Link href="/" style={styles.back}>‹  Back to Kimeza Play</Link>
           <Text style={styles.eyebrow}>YOUR FELLOWSHIP, CONNECTED</Text>
           <Text style={styles.title}>{mode === "register" ? "Create your account" : mode === "login" ? "Welcome back" : "Reset your password"}</Text>
-          <Text style={styles.subtitle}>For now, Kimeza Play account access uses email and password. Phone registration will be added later.</Text>
-          <View style={styles.modeRow}>
-            <Pressable onPress={() => { setMode("register"); clearFeedback(); }}><Text style={[styles.modeText, mode === "register" && styles.modeActive]}>Create account</Text></Pressable>
-            <Pressable onPress={() => { setMode("login"); clearFeedback(); }}><Text style={[styles.modeText, mode === "login" && styles.modeActive]}>Sign in</Text></Pressable>
-          </View>
+          <Text style={styles.subtitle}>For now, Kimeza Play account access uses email and password. Phone verification is postponed to a later stage.</Text>
+          {mode !== "forgot" && (
+            <View style={styles.modeRow}>
+              <Pressable onPress={() => { setMode("register"); clearFeedback(); }}><Text style={[styles.modeText, mode === "register" && styles.modeActive]}>Create account</Text></Pressable>
+              <Pressable onPress={() => { setMode("login"); clearFeedback(); }}><Text style={[styles.modeText, mode === "login" && styles.modeActive]}>Sign in</Text></Pressable>
+            </View>
+          )}
           {mode === "register" && <TextInput value={name} onChangeText={setName} placeholder="Your full name" placeholderTextColor="#8A9891" style={styles.input} autoCapitalize="words" />}
           <TextInput value={email} onChangeText={setEmail} placeholder="Email address" placeholderTextColor="#8A9891" style={styles.input} keyboardType="email-address" autoCapitalize="none" autoComplete="email" />
-          {mode !== "forgot" && <TextInput value={password} onChangeText={setPassword} placeholder="Password (at least 8 characters)" placeholderTextColor="#8A9891" style={styles.input} secureTextEntry autoCapitalize="none" />}
+          {mode !== "forgot" && <TextInput value={password} onChangeText={setPassword} placeholder="Password (at least 8 characters)" placeholderTextColor="#8A9891" style={styles.input} secureTextEntry autoCapitalize="none" autoComplete={mode === "register" ? "new-password" : "current-password"} />}
           {mode === "login" && <Pressable onPress={() => { setMode("forgot"); clearFeedback(); }}><Text style={styles.forgot}>Forgot your password?</Text></Pressable>}
           {mode === "forgot" && <Pressable onPress={() => { setMode("login"); clearFeedback(); }}><Text style={styles.forgot}>Back to sign in</Text></Pressable>}
           {!!error && <Text style={styles.error}>{error}</Text>}
@@ -71,7 +81,7 @@ export default function AuthScreen() {\n  const router = useRouter();
           <Pressable disabled={busy} onPress={submit} style={({ pressed }) => [styles.button, pressed && styles.pressed, busy && styles.disabled]}>
             {busy ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.buttonText}>{mode === "register" ? "Create account" : mode === "login" ? "Sign in" : "Send reset email"}</Text>}
           </Pressable>
-          <Text style={styles.hint}>Email verification and password reset delivery depend on the email settings configured in Supabase.</Text>
+          <Text style={styles.hint}>Email confirmation and password reset delivery depend on the email settings configured in Supabase.</Text>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
