@@ -21,11 +21,14 @@
       "name": "Kimeza Play",
       "shortName": "Kimeza"
     },
-    "plugins": [
-      "expo-router"
-    ],
+    "plugins": ["expo-router"],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "8e774152-5312-49bc-9b44-83121edf4872"
+      }
     }
   }
 }
