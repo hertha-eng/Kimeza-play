@@ -1,25 +1,29 @@
 import "expo-sqlite/localStorage/install";
+import { AppState } from "react-native";
 import { createClient } from "@supabase/supabase-js";
 
-// The project URL is public configuration. The publishable key is supplied
-// through the app environment and must never be replaced with a secret key.
 const supabaseUrl =
   process.env.EXPO_PUBLIC_SUPABASE_URL ??
   "https://mvhvazypzikqoihznkka.supabase.co";
-const supabasePublishableKey =
-  process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+const supabasePublishableKey = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
-export const isSupabaseConfigured = Boolean(
-  supabaseUrl && supabasePublishableKey
-);
+export const isSupabaseConfigured = Boolean(supabaseUrl && supabasePublishableKey);
 
 export const supabase = isSupabaseConfigured
   ? createClient(supabaseUrl, supabasePublishableKey!, {
       auth: {
-        persistSession: true,
+        storage: globalThis.localStorage,
         autoRefreshToken: true,
-        detectSessionInUrl: false,
-        storage: globalThis.localStorage
+        persistSession: true,
+        detectSessionInUrl: false
       }
     })
   : null;
+
+// Keep token refresh active only while the app is in the foreground.
+if (supabase) {
+  AppState.addEventListener("change", (state) => {
+    if (state === "active") supabase.auth.startAutoRefresh();
+    else supabase.auth.stopAutoRefresh();
+  });
+}
