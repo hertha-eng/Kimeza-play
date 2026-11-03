@@ -42,7 +42,10 @@ export default function WelcomeScreen() {
             <Text style={styles.signedIn}>YOU ARE SIGNED IN</Text>
             <Text style={styles.accountTitle}>Welcome to Kimeza Play</Text>
             <Text style={styles.accountText}>{session.user.email}</Text>
-            <Pressable onPress={signOut} style={styles.secondaryButton}><Text style={styles.secondaryButtonText}>Sign out</Text></Pressable>
+            <View style={styles.accountActions}>
+              <Link href="/dashboard" asChild><Pressable style={styles.primaryButton}><Text style={styles.primaryButtonText}>Open member dashboard</Text></Pressable></Link>
+              <Pressable onPress={signOut} style={styles.secondaryButton}><Text style={styles.secondaryButtonText}>Sign out</Text></Pressable>
+            </View>
           </View>
         ) : (
           <View style={styles.actions}>
@@ -85,7 +88,9 @@ const styles = StyleSheet.create({
   accountBox: { marginTop: 22, backgroundColor: "#EAF2EC", borderRadius: 16, padding: 18, alignSelf: "flex-start", minWidth: 260 },
   signedIn: { color: "#176B45", fontSize: 10, fontWeight: "900", letterSpacing: 1.5 },
   accountTitle: { color: "#153B30", fontWeight: "900", fontSize: 19, marginTop: 7 },
-  accountText: { color: "#52665C", marginTop: 5 }, secondaryButton: { marginTop: 14, borderWidth: 1, borderColor: "#9AB2A3", borderRadius: 10, padding: 10, alignItems: "center" },
+  accountText: { color: "#52665C", marginTop: 5 },
+  accountActions: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 14, alignItems: "center" },
+  secondaryButton: { borderWidth: 1, borderColor: "#9AB2A3", borderRadius: 10, padding: 10, alignItems: "center" },
   secondaryButtonText: { color: "#153B30", fontWeight: "800" },
   cards: { marginTop: 34, gap: 14 }, cardsWide: { flexDirection: "row" },
   card: { flex: 1, minHeight: 150, backgroundColor: "#FFFFFF", borderRadius: 18, padding: 20, borderWidth: 1, borderColor: "#E2E9E3" },
