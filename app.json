@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Kimeza Play",
-    "slug": "kimeza-play",
+    "slug": "kimeza",
     "scheme": "kimezaplay",
     "version": "0.1.0",
     "orientation": "default",
@@ -21,7 +21,9 @@
       "name": "Kimeza Play",
       "shortName": "Kimeza"
     },
-    "plugins": ["expo-router"],
+    "plugins": [
+      "expo-router"
+    ],
     "experiments": {
       "typedRoutes": true
     },
