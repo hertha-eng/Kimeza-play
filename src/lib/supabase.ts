@@ -1,5 +1,6 @@
-import "expo-sqlite/localStorage/install";
-import { AppState } from "react-native";
+import "react-native-url-polyfill/auto";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { AppState, Platform } from "react-native";
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl =
@@ -12,7 +13,7 @@ export const isSupabaseConfigured = Boolean(supabaseUrl && supabasePublishableKe
 export const supabase = isSupabaseConfigured
   ? createClient(supabaseUrl, supabasePublishableKey!, {
       auth: {
-        storage: globalThis.localStorage,
+        ...(Platform.OS === "web" ? { storage: globalThis.localStorage } : { storage: AsyncStorage }),
         autoRefreshToken: true,
         persistSession: true,
         detectSessionInUrl: false
@@ -20,8 +21,8 @@ export const supabase = isSupabaseConfigured
     })
   : null;
 
-// Keep token refresh active only while the app is in the foreground.
-if (supabase) {
+// React Native needs auth token refresh to pause while the app is in the background.
+if (supabase && Platform.OS !== "web") {
   AppState.addEventListener("change", (state) => {
     if (state === "active") supabase.auth.startAutoRefresh();
     else supabase.auth.stopAutoRefresh();
