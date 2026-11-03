@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "Kimeza Play",
+    "slug": "kimeza-play",
+    "scheme": "kimezaplay",
+    "version": "0.1.0",
+    "orientation": "default",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "org.kimezaplay.app"
+    },
+    "android": {
+      "package": "org.kimezaplay.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#102A24"
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "name": "Kimeza Play",
+      "shortName": "Kimeza"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-sqlite",
+        {
+          "enableFTS": false
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
