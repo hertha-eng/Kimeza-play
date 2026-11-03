@@ -1,7 +1,5 @@
 -- Kimeza Play initial relational foundation
--- All organisation membership and score history is stored centrally.
--- Sensitive role changes and official administration workflows will be added
--- through audited server-side functions in a later migration.
+-- Sensitive writes are reserved for trusted server-side workflows.
 
 create extension if not exists pgcrypto;
 
@@ -43,11 +41,21 @@ create table public.clubs (
   zone_id uuid not null references public.zones(id),
   name text not null,
   club_type public.club_type not null,
-  invitation_code text unique,
   status public.org_status not null default 'pending',
   created_by uuid references public.profiles(id),
   created_at timestamptz not null default now(),
   unique (zone_id, name)
+);
+
+-- Invitation hashes are isolated from the club directory and are not readable
+-- by ordinary authenticated clients. Trusted functions will validate them.
+create table public.club_invitation_codes (
+  id uuid primary key default gen_random_uuid(),
+  club_id uuid not null references public.clubs(id) on delete cascade,
+  code_hash text not null unique,
+  is_active boolean not null default true,
+  created_by uuid references public.profiles(id),
+  created_at timestamptz not null default now()
 );
 
 create table public.club_memberships (
@@ -142,7 +150,6 @@ create index matches_status_created_idx on public.matches(status, created_at des
 create index score_ledger_player_idx on public.score_ledger(player_id, recorded_at desc);
 create index score_ledger_destination_idx on public.score_ledger(destination_scope, destination_entity_id);
 
--- Automatically create a private profile row for each new auth account.
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -163,11 +170,47 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
 
+-- Helper functions avoid recursive RLS policy evaluation between group tables.
+create or replace function public.is_active_buddy_group_member(p_group_id uuid, p_user_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1
+    from public.buddy_group_members bgm
+    where bgm.buddy_group_id = p_group_id
+      and bgm.user_id = p_user_id
+      and bgm.status = 'active'
+  );
+$$;
+
+create or replace function public.is_buddy_group_creator(p_group_id uuid, p_user_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1 from public.buddy_groups bg
+    where bg.id = p_group_id and bg.created_by = p_user_id
+  );
+$$;
+
+revoke all on function public.is_active_buddy_group_member(uuid, uuid) from public;
+revoke all on function public.is_buddy_group_creator(uuid, uuid) from public;
+grant execute on function public.is_active_buddy_group_member(uuid, uuid) to authenticated;
+grant execute on function public.is_buddy_group_creator(uuid, uuid) to authenticated;
+
 -- Enable RLS on every application table.
 alter table public.profiles enable row level security;
 alter table public.districts enable row level security;
 alter table public.zones enable row level security;
 alter table public.clubs enable row level security;
+alter table public.club_invitation_codes enable row level security;
 alter table public.club_memberships enable row level security;
 alter table public.membership_history enable row level security;
 alter table public.buddy_groups enable row level security;
@@ -176,17 +219,18 @@ alter table public.matches enable row level security;
 alter table public.match_participants enable row level security;
 alter table public.score_ledger enable row level security;
 
--- Authenticated members can view their own profile and update ordinary profile details.
 create policy "Members can view own profile"
   on public.profiles for select to authenticated
   using (id = (select auth.uid()));
 
+-- Remove broad table-level UPDATE, then allow only ordinary profile columns.
+revoke update on table public.profiles from authenticated;
+grant update (display_name, avatar_url, updated_at) on table public.profiles to authenticated;
 create policy "Members can update own profile"
   on public.profiles for update to authenticated
   using (id = (select auth.uid()))
   with check (id = (select auth.uid()));
 
--- Approved organisation directory is readable to signed-in members.
 create policy "Members can view approved districts"
   on public.districts for select to authenticated using (status = 'approved');
 create policy "Members can view approved zones"
@@ -194,7 +238,6 @@ create policy "Members can view approved zones"
 create policy "Members can view approved clubs"
   on public.clubs for select to authenticated using (status = 'approved');
 
--- Members can view their own membership and membership history.
 create policy "Members can view own memberships"
   on public.club_memberships for select to authenticated
   using (user_id = (select auth.uid()));
@@ -202,30 +245,20 @@ create policy "Members can view own membership history"
   on public.membership_history for select to authenticated
   using (user_id = (select auth.uid()));
 
--- Buddy group members can see groups they belong to; creator can see own group.
 create policy "Members can view own buddy groups"
   on public.buddy_groups for select to authenticated
   using (
     created_by = (select auth.uid())
-    or exists (
-      select 1 from public.buddy_group_members bgm
-      where bgm.buddy_group_id = id
-        and bgm.user_id = (select auth.uid())
-        and bgm.status = 'active'
-    )
+    or public.is_active_buddy_group_member(id, (select auth.uid()))
   );
 
 create policy "Members can view own buddy group memberships"
   on public.buddy_group_members for select to authenticated
   using (
     user_id = (select auth.uid())
-    or exists (
-      select 1 from public.buddy_groups bg
-      where bg.id = buddy_group_id and bg.created_by = (select auth.uid())
-    )
+    or public.is_buddy_group_creator(buddy_group_id, (select auth.uid()))
   );
 
--- Open matches are discoverable; participants can see matches they joined.
 create policy "Members can view open or joined matches"
   on public.matches for select to authenticated
   using (
@@ -233,7 +266,7 @@ create policy "Members can view open or joined matches"
     or created_by = (select auth.uid())
     or exists (
       select 1 from public.match_participants mp
-      where mp.match_id = id and mp.user_id = (select auth.uid())
+      where mp.match_id = matches.id and mp.user_id = (select auth.uid())
     )
   );
 
@@ -241,12 +274,10 @@ create policy "Members can view own match participation"
   on public.match_participants for select to authenticated
   using (user_id = (select auth.uid()));
 
--- Personal score history is visible to the player. Public aggregate leaderboards
--- will be exposed later through carefully scoped views/functions.
 create policy "Members can view own score ledger"
   on public.score_ledger for select to authenticated
   using (player_id = (select auth.uid()));
 
--- Deliberately no client-side insert/update/delete policies for organisation
--- hierarchy, membership history, match scoring or score ledger. Those writes
--- must go through validated server-side workflows in subsequent migrations.
+-- No client write policies are granted for invitations, organisation hierarchy,
+-- membership history, match state, participants, or score records. Trusted,
+-- audited server-side functions will implement those workflows.
