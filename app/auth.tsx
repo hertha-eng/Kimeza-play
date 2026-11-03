@@ -43,7 +43,7 @@ export default function AuthScreen() {
           password,
           options: {
             data: { display_name: name.trim() },
-            emailRedirectTo: "kimezaplay://"
+            emailRedirectTo: "kimezaplay://auth/callback"
           }
         });
         if (e) throw e;
