@@ -2,6 +2,7 @@
 -- Sensitive writes are reserved for trusted server-side workflows.
 
 create extension if not exists pgcrypto;
+create schema if not exists private;
 
 create type public.platform_role as enum ('member', 'platform_admin');
 create type public.club_type as enum ('rotary', 'rotaract');
@@ -171,7 +172,7 @@ create trigger on_auth_user_created
   for each row execute procedure public.handle_new_user();
 
 -- Helper functions avoid recursive RLS policy evaluation between group tables.
-create or replace function public.is_active_buddy_group_member(p_group_id uuid, p_user_id uuid)
+create or replace function private.is_active_buddy_group_member(p_group_id uuid, p_user_id uuid)
 returns boolean
 language sql
 stable
@@ -187,7 +188,7 @@ as $$
   );
 $$;
 
-create or replace function public.is_buddy_group_creator(p_group_id uuid, p_user_id uuid)
+create or replace function private.is_buddy_group_creator(p_group_id uuid, p_user_id uuid)
 returns boolean
 language sql
 stable
@@ -200,10 +201,11 @@ as $$
   );
 $$;
 
-revoke all on function public.is_active_buddy_group_member(uuid, uuid) from public;
-revoke all on function public.is_buddy_group_creator(uuid, uuid) from public;
-grant execute on function public.is_active_buddy_group_member(uuid, uuid) to authenticated;
-grant execute on function public.is_buddy_group_creator(uuid, uuid) to authenticated;
+revoke all on function private.is_active_buddy_group_member(uuid, uuid) from public;
+revoke all on function private.is_buddy_group_creator(uuid, uuid) from public;
+grant usage on schema private to authenticated;
+grant execute on function private.is_active_buddy_group_member(uuid, uuid) to authenticated;
+grant execute on function private.is_buddy_group_creator(uuid, uuid) to authenticated;
 
 -- Enable RLS on every application table.
 alter table public.profiles enable row level security;
@@ -249,14 +251,14 @@ create policy "Members can view own buddy groups"
   on public.buddy_groups for select to authenticated
   using (
     created_by = (select auth.uid())
-    or public.is_active_buddy_group_member(id, (select auth.uid()))
+    or private.is_active_buddy_group_member(id, (select auth.uid()))
   );
 
 create policy "Members can view own buddy group memberships"
   on public.buddy_group_members for select to authenticated
   using (
     user_id = (select auth.uid())
-    or public.is_buddy_group_creator(buddy_group_id, (select auth.uid()))
+    or private.is_buddy_group_creator(buddy_group_id, (select auth.uid()))
   );
 
 create policy "Members can view open or joined matches"
