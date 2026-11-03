@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { Link } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { supabase } from "../src/lib/supabase";
 
 type Mode = "register" | "login" | "forgot";
 
-export default function AuthScreen() {
+export default function AuthScreen() {\n  const router = useRouter();
   const [mode, setMode] = useState<Mode>("register");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -32,7 +32,7 @@ export default function AuthScreen() {
       } else if (mode === "login") {
         const { error: e } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
         if (e) throw e;
-        setMessage("You are signed in successfully.");
+        setMessage("You are signed in successfully.");\n        router.replace("/");
       } else {
         const { data, error: e } = await supabase.auth.signUp({
           email: cleanEmail,
