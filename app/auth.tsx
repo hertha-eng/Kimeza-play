@@ -98,7 +98,7 @@ export default function AuthScreen() {
     setBusy(true);
     try {
       const result = method === "email"
-        ? await supabase.auth.verifyOtp({ email: cleanIdentity, token: otp.trim(), type: "signup" })
+        ? await supabase.auth.verifyOtp({ email: cleanIdentity, token: otp.trim(), type: "email" })
         : await supabase.auth.verifyOtp({ phone: cleanIdentity, token: otp.trim(), type: "sms" });
       if (result.error) throw result.error;
       setAwaitingOtp(false);
