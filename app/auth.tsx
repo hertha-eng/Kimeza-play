@@ -1,7 +1,11 @@
 import { useState } from "react";
 import { Link, useRouter } from "expo-router";
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import * as Linking from "expo-linking";
+import * as WebBrowser from "expo-web-browser";
 import { supabase } from "../src/lib/supabase";
+
+WebBrowser.maybeCompleteAuthSession();
 
 type Mode = "register" | "login" | "forgot";
 
@@ -16,6 +20,48 @@ export default function AuthScreen() {
   const [error, setError] = useState("");
 
   function clearFeedback() { setMessage(""); setError(""); }
+
+  async function signInWithGoogle() {
+    clearFeedback();
+    if (!supabase) { setError("Account services are not configured yet."); return; }
+    setBusy(true);
+    try {
+      const redirectTo = Linking.createURL("/auth/callback");
+      const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo, skipBrowserRedirect: true }
+      });
+      if (oauthError) throw oauthError;
+      if (!data.url) throw new Error("Google sign-in could not be started.");
+      if (Platform.OS === "web") {
+        window.location.assign(data.url);
+        return;
+      }
+      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+      if (result.type !== "success" || !result.url) {
+        if (result.type === "cancel" || result.type === "dismiss") return;
+        throw new Error("Google sign-in was not completed. Please try again.");
+      }
+      const callback = new URL(result.url);
+      const code = callback.searchParams.get("code");
+      if (code) {
+        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+        if (exchangeError) throw exchangeError;
+      } else {
+        const hash = new URLSearchParams(callback.hash.replace(/^#/, ""));
+        const access_token = hash.get("access_token");
+        const refresh_token = hash.get("refresh_token");
+        if (!access_token || !refresh_token) throw new Error("Google returned without a valid sign-in session.");
+        const { error: sessionError } = await supabase.auth.setSession({ access_token, refresh_token });
+        if (sessionError) throw sessionError;
+      }
+      router.replace("/dashboard");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Google sign-in failed. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function submit() {
     clearFeedback();
@@ -64,13 +110,17 @@ export default function AuthScreen() {
           <Link href="/" style={styles.back}>‹  Back to Kimeza Play</Link>
           <Text style={styles.eyebrow}>YOUR FELLOWSHIP, CONNECTED</Text>
           <Text style={styles.title}>{mode === "register" ? "Create your account" : mode === "login" ? "Welcome back" : "Reset your password"}</Text>
-          <Text style={styles.subtitle}>For now, Kimeza Play account access uses email and password. Phone verification is postponed to a later stage.</Text>
-          {mode !== "forgot" && (
+          <Text style={styles.subtitle}>Sign in with Google or use your email and password. Phone verification will be added at a later stage.</Text>
+          {mode !== "forgot" && <>
+            <Pressable disabled={busy} onPress={signInWithGoogle} style={[styles.googleButton, busy && styles.disabled]}>
+              <Text style={styles.googleMark}>G</Text><Text style={styles.googleText}>Continue with Google</Text>
+            </Pressable>
+            <View style={styles.separator}><View style={styles.line} /><Text style={styles.orText}>OR CONTINUE WITH EMAIL</Text><View style={styles.line} /></View>
             <View style={styles.modeRow}>
               <Pressable onPress={() => { setMode("register"); clearFeedback(); }}><Text style={[styles.modeText, mode === "register" && styles.modeActive]}>Create account</Text></Pressable>
               <Pressable onPress={() => { setMode("login"); clearFeedback(); }}><Text style={[styles.modeText, mode === "login" && styles.modeActive]}>Sign in</Text></Pressable>
             </View>
-          )}
+          </>}
           {mode === "register" && <TextInput value={name} onChangeText={setName} placeholder="Your full name" placeholderTextColor="#8A9891" style={styles.input} autoCapitalize="words" />}
           <TextInput value={email} onChangeText={setEmail} placeholder="Email address" placeholderTextColor="#8A9891" style={styles.input} keyboardType="email-address" autoCapitalize="none" autoComplete="email" />
           {mode !== "forgot" && <TextInput value={password} onChangeText={setPassword} placeholder="Password (at least 8 characters)" placeholderTextColor="#8A9891" style={styles.input} secureTextEntry autoCapitalize="none" autoComplete={mode === "register" ? "new-password" : "current-password"} />}
@@ -81,7 +131,7 @@ export default function AuthScreen() {
           <Pressable disabled={busy} onPress={submit} style={({ pressed }) => [styles.button, pressed && styles.pressed, busy && styles.disabled]}>
             {busy ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.buttonText}>{mode === "register" ? "Create account" : mode === "login" ? "Sign in" : "Send reset email"}</Text>}
           </Pressable>
-          <Text style={styles.hint}>Email confirmation and password reset delivery depend on the email settings configured in Supabase.</Text>
+          <Text style={styles.hint}>Google sign-in must also be enabled in your Supabase Authentication provider settings.</Text>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -93,6 +143,10 @@ const styles = StyleSheet.create({
   card: { width: "100%", maxWidth: 480, alignSelf: "center", backgroundColor: "#FFFFFF", borderRadius: 24, padding: 24, borderWidth: 1, borderColor: "#E2E9E3" },
   back: { color: "#557168", fontWeight: "700", marginBottom: 28 }, eyebrow: { color: "#B17B27", fontSize: 10, fontWeight: "900", letterSpacing: 2 },
   title: { color: "#102A24", fontSize: 28, fontWeight: "900", marginTop: 10 }, subtitle: { color: "#66756D", fontSize: 14, lineHeight: 21, marginTop: 8, marginBottom: 22 },
+  googleButton: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 12, borderWidth: 1, borderColor: "#DCE5DE", borderRadius: 12, padding: 14, backgroundColor: "#FFFFFF" },
+  googleMark: { color: "#4285F4", fontSize: 20, fontWeight: "900" }, googleText: { color: "#18352C", fontWeight: "800", fontSize: 15 },
+  separator: { flexDirection: "row", alignItems: "center", gap: 10, marginVertical: 20 }, line: { flex: 1, height: 1, backgroundColor: "#E2E9E3" },
+  orText: { color: "#87948D", fontSize: 9, fontWeight: "800", letterSpacing: 1 },
   modeRow: { flexDirection: "row", gap: 24, marginBottom: 18 }, modeText: { color: "#89958E", fontWeight: "700", paddingBottom: 7 },
   modeActive: { color: "#153B30", borderBottomWidth: 2, borderBottomColor: "#D69A36" },
   input: { borderWidth: 1, borderColor: "#DCE5DE", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 14, color: "#18352C", marginBottom: 12, fontSize: 15 },
