@@ -75,7 +75,7 @@ export default function AuthScreen() {
     try {
       if (mode === "forgot") {
         const { error: e } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
-          redirectTo: "kimezaplay://auth/reset-password"
+          redirectTo: Linking.createURL("/auth/reset-password")
         });
         if (e) throw e;
         setMessage("If an account exists for that email, password reset instructions will be sent.");
