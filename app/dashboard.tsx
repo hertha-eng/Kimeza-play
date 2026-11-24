@@ -91,7 +91,7 @@ export default function DashboardScreen() {
           {profile?.platform_role === "platform_admin" && <Pressable onPress={() => router.push("/platform-admin")} style={styles.membershipButton}><Text style={styles.membershipButtonText}>Open platform administration</Text></Pressable>}
           <Text style={styles.sectionTitle}>Your Kimeza space</Text>
           <View style={styles.grid}>
-            <View style={styles.feature}><Text style={styles.featureTitle}>Games</Text><Text style={styles.featureText}>Friendly game rooms and challenges are coming next.</Text><Text style={styles.coming}>COMING NEXT</Text></View>
+            <Pressable onPress={() => router.push("/games")} style={styles.feature}><Text style={styles.featureTitle}>Games</Text><Text style={styles.featureText}>Create a room, join friends and play Word Chain.</Text><Text style={styles.coming}>PLAY WORD CHAIN  ›</Text></Pressable>
             <View style={styles.feature}><Text style={styles.featureTitle}>Buddy Groups</Text><Text style={styles.featureText}>Create cross-club fellowship groups with friends.</Text><Text style={styles.coming}>COMING NEXT</Text></View>
             <View style={styles.feature}><Text style={styles.featureTitle}>Competitions</Text><Text style={styles.featureText}>Follow official club, zone and district events.</Text><Text style={styles.coming}>COMING NEXT</Text></View>
             <View style={styles.feature}><Text style={styles.featureTitle}>My profile</Text><Text style={styles.featureText}>Account: {session?.user.email}</Text><Text style={styles.coming}>PROFILE ACTIVE</Text></View>
