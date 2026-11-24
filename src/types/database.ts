@@ -569,6 +569,10 @@ export type Database = {
         Args: { p_approve: boolean; p_membership_id: string }
         Returns: Database["public"]["Enums"]["membership_status"]
       }
+      review_organization: {
+        Args: { p_approve: boolean; p_entity_id: string; p_entity_type: string }
+        Returns: string
+      }
     }
     Enums: {
       club_type: "rotary" | "rotaract"
