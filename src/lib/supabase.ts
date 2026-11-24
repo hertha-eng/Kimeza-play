@@ -8,7 +8,7 @@ const supabaseUrl =
   "https://mvhvazypzikqoihznkka.supabase.co";
 const supabasePublishableKey =
   process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
-  "sb_publishable_rHz-iTHZQ6QrRkqbQBaizQ_gJCzpnLf";
+  "sb_publishable_PpM7NGeGUzGOksOAKtXU5Q_zE2esdSR";
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabasePublishableKey);
 
