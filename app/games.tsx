@@ -16,13 +16,14 @@ export default function GamesScreen(){
  const accept=(data:any)=>{if(data){setRoom(data as Room);setCode(data.room_code||"");setError("");}};
  const loadRoom=useCallback(async(id:string)=>{if(!supabase)return;const {data,error:e}=await supabase.rpc("get_word_chain_room",{p_match_id:id});if(e)handleError(e);else accept(data);},[]);
  useEffect(()=>{let alive=true;void supabase?.auth.getUser().then(({data})=>{if(alive)setCurrentUserId(data.user?.id||"");});return()=>{alive=false;};},[]);\n useEffect(()=>{if(params.room)void loadRoom(params.room);},[params.room,loadRoom]);
- useEffect(()=>{if(!room?.id)return;const poll=setInterval(()=>void loadRoom(room.id),2500);return()=>clearInterval(poll);},[room?.id,loadRoom]);
+ useEffect(()=>{if(!room?.id)return;const poll=setInterval(()=>void loadRoom(room.id),2500);return()=>clearInterval(poll);},[room?.id,loadRoom]);\n useEffect(()=>{if(room?.status==="in_progress"&&seconds===0&&room.game_state?.turn_deadline){void claimTimeout();}},[room?.id,room?.status,seconds,room?.game_state?.turn_deadline]);
  useEffect(()=>{if(!room?.game_state?.turn_deadline){setSeconds(0);return;}const tick=()=>setSeconds(Math.max(0,Math.ceil((new Date(room.game_state.turn_deadline!).getTime()-Date.now())/1000)));tick();const timer=setInterval(tick,500);return()=>clearInterval(timer);},[room?.game_state?.turn_deadline]);
  async function action(fn:()=>Promise<any>,success?:string){if(busy)return;setBusy(true);setError("");setNotice("");try{const {data,error:e}=await fn();if(e)throw e;if(data)accept(data);if(success)setNotice(success);}catch(e){handleError(e);}finally{setBusy(false);}}
  async function create(){await action(()=>supabase!.rpc("create_word_chain_room",{p_title:title,p_turn_seconds:30}),"Room created. Share the room code with one other member.");}
  async function join(){await action(()=>supabase!.rpc("join_word_chain_room",{p_room_code:code}),"You joined the room.");}
  async function start(){if(!room)return;await action(()=>supabase!.rpc("start_word_chain_room",{p_match_id:room.id}),"Game started. Good luck!");}
  async function submit(){if(!room)return;const clean=word.trim();if(!clean)return;await action(()=>supabase!.rpc("submit_word_chain_word",{p_match_id:room.id,p_word:clean}),"Word accepted.");setWord("");}
+ async function claimTimeout(){if(!room)return;await action(()=>supabase!.rpc("expire_word_chain_turn",{p_match_id:room.id}),"The turn expired. The match result has been recorded.");}
  const myId=room?.players.find(p=>p.user_id===room.game_state?.current_turn_user_id)?.user_id;
  const {data:authData}= {data:null as any};
  const currentPlayer=room?.players.find(p=>p.user_id===room.game_state?.current_turn_user_id);
@@ -39,7 +40,7 @@ export default function GamesScreen(){
  <TextInput value={word} onChangeText={setWord} style={s.input} placeholder="Enter one word" autoCapitalize="none" editable={room.game_state.current_turn_user_id===currentUserId}/>
  <Pressable disabled={busy||!word.trim()||room.game_state.current_turn_user_id!==currentUserId} onPress={submit} style={s.primary}><Text style={s.primaryText}>Submit word</Text></Pressable></>}
  </View>
- <Text style={s.section}>Word chain ({room.game_state.words?.length||0})</Text>
+ {room.status==="completed"&&<View style={s.card}><Text style={s.heading}>Game complete</Text><Text style={s.turnName}>{room.players.find(p=>p.user_id===room.game_state.winner_user_id)?.display_name||"Winner"} wins!</Text><Text style={s.muted}>The opponent ran out of time. Results have been saved as friendly-play points; no club, zone or district score was awarded.</Text></View>}\n <Text style={s.section}>Word chain ({room.game_state.words?.length||0})</Text>
  {(room.game_state.words||[]).length===0?<Text style={s.muted}>The first player can begin with any word.</Text>:(room.game_state.words||[]).map((w,i)=><View key={w.turn} style={s.wordRow}><Text style={s.wordIndex}>{i+1}</Text><Text style={s.wordText}>{w.word}</Text><Text style={s.muted}>{room.players.find(p=>p.user_id===w.user_id)?.display_name||"Player"}</Text></View>)}
  </>}
  </View></ScrollView>;
