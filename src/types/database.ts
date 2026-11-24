@@ -553,7 +553,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      appoint_club_admin: {
+        Args: { p_club_id: string; p_user_id: string }
+        Returns: string
+      }
+      create_club_invitation_code: {
+        Args: { p_club_id: string }
+        Returns: string
+      }
+      redeem_club_invitation_code: {
+        Args: { p_code: string }
+        Returns: string
+      }
+      review_club_membership: {
+        Args: { p_approve: boolean; p_membership_id: string }
+        Returns: Database["public"]["Enums"]["membership_status"]
+      }
     }
     Enums: {
       club_type: "rotary" | "rotaract"
