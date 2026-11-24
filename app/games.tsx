@@ -120,8 +120,7 @@ export default function GamesScreen() {
     busyRef.current = true; setBusy(true); setError(""); setNotice("");
     try {
       const { data: validation, error: validationError } = await supabase!.functions.invoke("word-chain-dictionary", { body: { word: clean } });
-      if (validationError) throw validationError;
-      if (!validation?.valid) { setError(validation?.error || "That word is not in the dictionary."); await passTurn("invalid"); return; }
+      if (validationError || !validation?.valid) { setError(validation?.error || validationError?.message || "That word is not in the dictionary."); await passTurn("invalid"); return; }
       const { data, error: submitError } = await supabase!.rpc("submit_word_chain_word", { p_match_id: room.id, p_word: clean });
       if (submitError) {
         setError(submitError.message);
