@@ -86,6 +86,7 @@ export default function DashboardScreen() {
               <Text style={styles.panelText}>You can request to join an approved club or use a club invitation code when membership applications are enabled.</Text>
             </>}
           </View>
+          <Pressable onPress={() => router.push("/club-membership")} style={styles.membershipButton}><Text style={styles.membershipButtonText}>{membership ? "View club membership" : "Find or join a club"}</Text></Pressable>
           <Text style={styles.sectionTitle}>Your Kimeza space</Text>
           <View style={styles.grid}>
             <View style={styles.feature}><Text style={styles.featureTitle}>Games</Text><Text style={styles.featureText}>Friendly game rooms and challenges are coming next.</Text><Text style={styles.coming}>COMING NEXT</Text></View>
@@ -127,6 +128,8 @@ const styles = StyleSheet.create({
   featureTitle: { color: "#153B30", fontWeight: "900", fontSize: 16 },
   featureText: { color: "#68776F", lineHeight: 19, marginTop: 7, fontSize: 12 },
   coming: { color: "#B17B27", fontSize: 9, fontWeight: "900", letterSpacing: 1, marginTop: 12 },
+  membershipButton: { backgroundColor: "#E7F0E9", borderRadius: 11, borderWidth: 1, borderColor: "#C9DCCF", padding: 14, alignItems: "center", marginTop: 16 },
+  membershipButtonText: { color: "#176B45", fontWeight: "900" },
   refresh: { backgroundColor: "#153B30", borderRadius: 11, padding: 13, alignItems: "center", marginTop: 22 },
   refreshText: { color: "#FFFFFF", fontWeight: "800" },
   error: { color: "#B42318", backgroundColor: "#FEF3F2", padding: 10, borderRadius: 9, marginTop: 14 },
