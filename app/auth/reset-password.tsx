@@ -21,12 +21,28 @@ export default function ResetPasswordScreen() {
         const parsed = Linking.parse(url);
         const code = typeof parsed.queryParams?.code === "string" ? parsed.queryParams.code : null;
         const tokenHash = typeof parsed.queryParams?.token_hash === "string" ? parsed.queryParams.token_hash : null;
+        const fragment = url.includes("#") ? url.split("#").pop() ?? "" : "";
+        const hashParams = new URLSearchParams(fragment);
+        const accessToken = hashParams.get("access_token");
+        const refreshToken = hashParams.get("refresh_token");
+        const recoveryType = hashParams.get("type") === "recovery";
         if (code) {
           const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
           if (exchangeError) throw exchangeError;
         } else if (tokenHash) {
           const { error: verifyError } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: "recovery" });
           if (verifyError) throw verifyError;
+        } else if (accessToken && refreshToken && recoveryType) {
+          const { error: sessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          });
+          if (sessionError) throw sessionError;
+        } else {
+          const { data: sessionData } = await supabase.auth.getSession();
+          if (!sessionData.session) {
+            throw new Error("The reset link did not contain a valid recovery session. Request a new password reset email.");
+          }
         }
         if (active) setReady(true);
       } catch (e) {
