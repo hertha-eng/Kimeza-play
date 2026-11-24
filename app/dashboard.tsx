@@ -4,7 +4,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../src/lib/supabase";
 
-type Profile = { display_name: string; avatar_url: string | null };
+type Profile = { display_name: string; avatar_url: string | null; platform_role: "member" | "platform_admin" };
 type Membership = { id: string; status: string; club_id: string };
 type Club = { id: string; name: string; club_type: "rotary" | "rotaract"; status: string };
 
@@ -27,7 +27,7 @@ export default function DashboardScreen() {
     const userId = auth.session.user.id;
 
     const [profileResult, membershipResult, scoreResult] = await Promise.all([
-      supabase.from("profiles").select("display_name, avatar_url").eq("id", userId).maybeSingle(),
+      supabase.from("profiles").select("display_name, avatar_url, platform_role").eq("id", userId).maybeSingle(),
       supabase.from("club_memberships").select("id, status, club_id").eq("user_id", userId).in("status", ["active", "pending"]).limit(1).maybeSingle(),
       supabase.from("score_ledger").select("points").eq("player_id", userId)
     ]);
@@ -87,6 +87,7 @@ export default function DashboardScreen() {
             </>}
           </View>
           <Pressable onPress={() => router.push("/club-membership")} style={styles.membershipButton}><Text style={styles.membershipButtonText}>{membership ? "View club membership" : "Find or join a club"}</Text></Pressable>
+          {profile?.platform_role === "platform_admin" && <Pressable onPress={() => router.push("/platform-admin")} style={styles.membershipButton}><Text style={styles.membershipButtonText}>Open platform administration</Text></Pressable>}
           <Text style={styles.sectionTitle}>Your Kimeza space</Text>
           <View style={styles.grid}>
             <View style={styles.feature}><Text style={styles.featureTitle}>Games</Text><Text style={styles.featureText}>Friendly game rooms and challenges are coming next.</Text><Text style={styles.coming}>COMING NEXT</Text></View>
