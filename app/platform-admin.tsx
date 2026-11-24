@@ -44,6 +44,8 @@ export default function PlatformAdminScreen() {
     setBusy("");await load();
   }
 
+  useEffect(() => { void load(); }, [load]);
+
   const pending=items.filter(x=>x.status==="pending");
   const approved=items.filter(x=>x.status==="approved");
   return <ScrollView contentContainerStyle={styles.page}><View style={styles.shell}>
