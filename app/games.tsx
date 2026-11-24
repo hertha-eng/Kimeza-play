@@ -72,7 +72,10 @@ export default function GamesScreen() {
     if (autoSubmittedFor.current === key) return;
     autoSubmittedFor.current = key;
     if (room.game_state.current_turn_user_id === currentUserId) void submitWord(true);
-    else void passExpiredTurn();
+    else {
+      const graceTimer = setTimeout(() => void passExpiredTurn(), 2300);
+      return () => clearTimeout(graceTimer);
+    }
   }, [seconds, room?.id, room?.status, room?.game_state?.turn_deadline, currentUserId]);
 
   useEffect(() => {
