@@ -12,6 +12,7 @@
     },
     "android": {
       "package": "org.kimezaplay.app",
+      "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "backgroundColor": "#102A24"
       }
