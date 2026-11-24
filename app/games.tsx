@@ -27,6 +27,7 @@ export default function GamesScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [rejection, setRejection] = useState<{ word: string; reason: string } | null>(null);
   const [seconds, setSeconds] = useState(0);
   const [matchSeconds, setMatchSeconds] = useState(0);
   const [currentUserId, setCurrentUserId] = useState("");
@@ -35,7 +36,7 @@ export default function GamesScreen() {
   const busyRef = useRef(false);
 
   const handleError = (e: any) => setError(e?.message || "Something went wrong. Please try again.");
-  const accept = (data: any) => { if (data) { setRoom(data as Room); setCode(data.room_code || ""); setError(""); } };
+  const accept = (data: any) => { if (data) { setRoom(data as Room); setCode(data.room_code || ""); } };
   const loadRoom = useCallback(async (id: string) => {
     if (!supabase) return;
     const { data, error: e } = await supabase.rpc("get_word_chain_room", { p_match_id: id });
@@ -123,7 +124,7 @@ export default function GamesScreen() {
     busyRef.current = true; setBusy(true); setError(""); setNotice("");
     try {
       const { data: validation, error: validationError } = await supabase!.functions.invoke("word-chain-dictionary", { body: { word: clean } });
-      if (validationError || !validation?.valid) { setError(validation?.error || validationError?.message || "That word is not in the dictionary."); await passTurn("invalid"); return; }
+      if (validationError || !validation?.valid) { const reason = validation?.error || validationError?.message || "The word could not be verified in the English dictionary."; setRejection({ word: clean, reason }); await passTurn("invalid"); return; }
       const { data, error: submitError } = await supabase!.rpc("submit_word_chain_word", { p_match_id: room.id, p_word: clean });
       if (submitError) {
         setError(submitError.message);
@@ -162,6 +163,7 @@ export default function GamesScreen() {
     <Text style={s.eyebrow}>KIMEZA PLAY • GAMES</Text><Text style={s.title}>Word Chain</Text>
     <Text style={s.subtitle}>Build a chain of dictionary-verified words. Each word must begin with the last letter of the previous word.</Text>
     {!!error && <Text style={s.error}>{error}</Text>}{!!notice && <Text style={s.notice}>{notice}</Text>}
+    {room?.status === "in_progress" && rejection && <View style={s.rejection}><Text style={s.rejectionTitle}>WORD NOT ACCEPTED</Text><Text style={s.rejectionWord}>“{rejection.word}”</Text><Text style={s.rejectionReason}>Reason: {rejection.reason}</Text><Text style={s.rejectionHint}>No point was awarded. The turn has moved to the next player.</Text></View>}
     {!room ? <>
       <View style={s.card}><Text style={s.heading}>Create a room</Text><Text style={s.muted}>Choose the match duration. The setting locks when the game starts.</Text>
         <TextInput value={title} onChangeText={setTitle} style={s.input} placeholder="Room name" />
@@ -191,7 +193,7 @@ export default function GamesScreen() {
             <Text style={s.muted}>{myTurn ? "Your turn. Start typing within 3 seconds; your text auto-submits at 10 seconds." : "Waiting for your opponent."}</Text></View>
           {myTurn && <><Text style={s.muted}>Typing must begin before the 3-second start deadline.</Text>
             {previous && <Text style={s.muted}>Your word must begin with <Text style={s.letter}>{previous.slice(-1).toUpperCase()}</Text></Text>}
-            <TextInput value={word} onChangeText={v => { setWord(v); if (v.length > 0) void beginTyping(); }} style={s.input}
+            <TextInput value={word} onChangeText={v => { setWord(v); setRejection(null); if (v.length > 0) void beginTyping(); }} style={s.input}
               placeholder="Start typing a word…" autoCapitalize="none" editable={!busy && seconds > 0} />
             <Pressable disabled={busy || !word.trim()} onPress={() => void submitWord(false)} style={s.primary}><Text style={s.primaryText}>Submit word now</Text></Pressable>
           </>}
@@ -222,7 +224,7 @@ const s = StyleSheet.create({
  label:{color:"#68776F",fontSize:10,fontWeight:"900",letterSpacing:1,marginTop:5},input:{backgroundColor:"#F8FAF8",borderWidth:1,borderColor:"#DCE5DE",borderRadius:11,padding:14,color:"#18352C",marginTop:14,marginBottom:12},
  primary:{backgroundColor:"#153B30",borderRadius:11,padding:14,alignItems:"center",marginTop:6},primaryText:{color:"#fff",fontWeight:"900"},
  secondary:{backgroundColor:"#E7F0E9",borderRadius:11,padding:14,alignItems:"center"},secondaryText:{color:"#176B45",fontWeight:"900"},
- error:{color:"#B42318",backgroundColor:"#FEF3F2",padding:12,borderRadius:10,marginBottom:12},notice:{color:"#176B45",backgroundColor:"#ECFDF3",padding:12,borderRadius:10,marginBottom:12},
+ rejection:{backgroundColor:"#FFF1F0",borderWidth:1,borderColor:"#F2B8B5",padding:14,borderRadius:12,marginBottom:12},rejectionTitle:{color:"#B42318",fontWeight:"900",fontSize:11,letterSpacing:1},rejectionWord:{color:"#842029",fontWeight:"900",fontSize:18,marginTop:5},rejectionReason:{color:"#842029",fontSize:13,lineHeight:19,marginTop:5},rejectionHint:{color:"#8A4B48",fontSize:11,marginTop:6},error:{color:"#B42318",backgroundColor:"#FEF3F2",padding:12,borderRadius:10,marginBottom:12},notice:{color:"#176B45",backgroundColor:"#ECFDF3",padding:12,borderRadius:10,marginBottom:12},
  roomHead:{backgroundColor:"#102A24",borderRadius:15,padding:18,marginBottom:12,flexDirection:"row",justifyContent:"space-between",alignItems:"center"},
  roomCode:{color:"#E2B55F",fontSize:28,fontWeight:"900",letterSpacing:4},leave:{backgroundColor:"#fff",padding:10,borderRadius:9},
  player:{borderTopWidth:1,borderTopColor:"#E8EEE9",paddingVertical:12,marginTop:10},playerName:{color:"#153B30",fontWeight:"800"},
