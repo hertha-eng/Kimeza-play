@@ -15,6 +15,7 @@ export default function AuthScreen() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -104,8 +105,8 @@ export default function AuthScreen() {
   }
 
   return (
-    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
+    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={Platform.OS === "ios" ? 24 : 0}>
+      <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled" keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"} automaticallyAdjustKeyboardInsets>
         <View style={styles.card}>
           <Link href="/" style={styles.back}>‹  Back to Kimeza Play</Link>
           <Text style={styles.eyebrow}>YOUR FELLOWSHIP, CONNECTED</Text>
@@ -123,7 +124,7 @@ export default function AuthScreen() {
           </>}
           {mode === "register" && <TextInput value={name} onChangeText={setName} placeholder="Your full name" placeholderTextColor="#8A9891" style={styles.input} autoCapitalize="words" />}
           <TextInput value={email} onChangeText={setEmail} placeholder="Email address" placeholderTextColor="#8A9891" style={styles.input} keyboardType="email-address" autoCapitalize="none" autoComplete="email" />
-          {mode !== "forgot" && <TextInput value={password} onChangeText={setPassword} placeholder="Password (at least 8 characters)" placeholderTextColor="#8A9891" style={styles.input} secureTextEntry autoCapitalize="none" autoComplete={mode === "register" ? "new-password" : "current-password"} />}
+          {mode !== "forgot" && <View style={styles.passwordRow}><TextInput value={password} onChangeText={setPassword} placeholder="Password (at least 8 characters)" placeholderTextColor="#8A9891" style={styles.passwordInput} secureTextEntry={!showPassword} autoCapitalize="none" autoComplete={mode === "register" ? "new-password" : "current-password"} textContentType={mode === "register" ? "newPassword" : "password"} returnKeyType="done" /><Pressable accessibilityRole="button" accessibilityLabel={showPassword ? "Hide password" : "Show password"} onPress={() => setShowPassword(value => !value)} hitSlop={10} style={styles.showPassword}><Text style={styles.showPasswordText}>{showPassword ? "Hide" : "Show"}</Text></Pressable></View>}
           {mode === "login" && <Pressable onPress={() => { setMode("forgot"); clearFeedback(); }}><Text style={styles.forgot}>Forgot your password?</Text></Pressable>}
           {mode === "forgot" && <Pressable onPress={() => { setMode("login"); clearFeedback(); }}><Text style={styles.forgot}>Back to sign in</Text></Pressable>}
           {!!error && <Text style={styles.error}>{error}</Text>}
@@ -139,7 +140,7 @@ export default function AuthScreen() {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 }, page: { flexGrow: 1, backgroundColor: "#F4F7F3", justifyContent: "center", padding: 20 },
+  flex: { flex: 1 }, page: { flexGrow: 1, backgroundColor: "#F4F7F3", justifyContent: "center", padding: 20, paddingVertical: 28 },
   card: { width: "100%", maxWidth: 480, alignSelf: "center", backgroundColor: "#FFFFFF", borderRadius: 24, padding: 24, borderWidth: 1, borderColor: "#E2E9E3" },
   back: { color: "#557168", fontWeight: "700", marginBottom: 28 }, eyebrow: { color: "#B17B27", fontSize: 10, fontWeight: "900", letterSpacing: 2 },
   title: { color: "#102A24", fontSize: 28, fontWeight: "900", marginTop: 10 }, subtitle: { color: "#66756D", fontSize: 14, lineHeight: 21, marginTop: 8, marginBottom: 22 },
@@ -150,6 +151,9 @@ const styles = StyleSheet.create({
   modeRow: { flexDirection: "row", gap: 24, marginBottom: 18 }, modeText: { color: "#89958E", fontWeight: "700", paddingBottom: 7 },
   modeActive: { color: "#153B30", borderBottomWidth: 2, borderBottomColor: "#D69A36" },
   input: { borderWidth: 1, borderColor: "#DCE5DE", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 14, color: "#18352C", marginBottom: 12, fontSize: 15 },
+  passwordRow: { flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: "#DCE5DE", borderRadius: 12, marginBottom: 12, backgroundColor: "#FFFFFF" },
+  passwordInput: { flex: 1, paddingHorizontal: 14, paddingVertical: 14, color: "#18352C", fontSize: 15, minWidth: 0 },
+  showPassword: { paddingHorizontal: 14, paddingVertical: 12 }, showPasswordText: { color: "#176B45", fontWeight: "800", fontSize: 13 },
   forgot: { color: "#176B45", fontWeight: "700", marginBottom: 12 }, button: { backgroundColor: "#153B30", borderRadius: 12, padding: 15, alignItems: "center", marginTop: 8 },
   pressed: { opacity: 0.85 }, disabled: { opacity: 0.6 }, buttonText: { color: "#FFFFFF", fontWeight: "800", fontSize: 15 },
   error: { color: "#B42318", backgroundColor: "#FEF3F2", padding: 10, borderRadius: 9, marginBottom: 8, lineHeight: 19 },
