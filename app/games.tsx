@@ -10,12 +10,12 @@ type Room={id:string;title:string;game_code:string;status:string;room_code:strin
 export default function GamesScreen(){
  const router=useRouter(); const params=useLocalSearchParams<{room?:string}>();
  const [room,setRoom]=useState<Room|null>(null); const [code,setCode]=useState(""); const [title,setTitle]=useState("Word Chain"); const [word,setWord]=useState("");
- const [busy,setBusy]=useState(false); const [loading,setLoading]=useState(false); const [error,setError]=useState(""); const [notice,setNotice]=useState(""); const [seconds,setSeconds]=useState(0);
- const userId=useMemo(()=>null,[room?.id]);
+ const [busy,setBusy]=useState(false); const [loading,setLoading]=useState(false); const [error,setError]=useState(""); const [notice,setNotice]=useState(""); const [seconds,setSeconds]=useState(0); const [currentUserId,setCurrentUserId]=useState("");
+ 
  const handleError=(e:any)=>setError(e?.message||"Something went wrong. Please try again.");
  const accept=(data:any)=>{if(data){setRoom(data as Room);setCode(data.room_code||"");setError("");}};
  const loadRoom=useCallback(async(id:string)=>{if(!supabase)return;const {data,error:e}=await supabase.rpc("get_word_chain_room",{p_match_id:id});if(e)handleError(e);else accept(data);},[]);
- useEffect(()=>{if(params.room)void loadRoom(params.room);},[params.room,loadRoom]);
+ useEffect(()=>{let alive=true;void supabase?.auth.getUser().then(({data})=>{if(alive)setCurrentUserId(data.user?.id||"");});return()=>{alive=false;};},[]);\n useEffect(()=>{if(params.room)void loadRoom(params.room);},[params.room,loadRoom]);
  useEffect(()=>{if(!room?.id)return;const poll=setInterval(()=>void loadRoom(room.id),2500);return()=>clearInterval(poll);},[room?.id,loadRoom]);
  useEffect(()=>{if(!room?.game_state?.turn_deadline){setSeconds(0);return;}const tick=()=>setSeconds(Math.max(0,Math.ceil((new Date(room.game_state.turn_deadline!).getTime()-Date.now())/1000)));tick();const timer=setInterval(tick,500);return()=>clearInterval(timer);},[room?.game_state?.turn_deadline]);
  async function action(fn:()=>Promise<any>,success?:string){if(busy)return;setBusy(true);setError("");setNotice("");try{const {data,error:e}=await fn();if(e)throw e;if(data)accept(data);if(success)setNotice(success);}catch(e){handleError(e);}finally{setBusy(false);}}
@@ -35,9 +35,9 @@ export default function GamesScreen(){
  <View style={s.roomHead}><View><Text style={s.muted}>ROOM CODE</Text><Text style={s.roomCode}>{room.room_code}</Text></View><Pressable onPress={()=>{setRoom(null);router.replace("/games");}} style={s.leave}><Text style={s.secondaryText}>Close view</Text></Pressable></View>
  <View style={s.card}><Text style={s.heading}>{room.title}</Text><Text style={s.muted}>{room.players.length} of 2 players joined • {room.status.replace("_"," ")}</Text>{room.players.map((p,i)=><View key={p.user_id} style={s.player}><Text style={s.playerName}>{p.display_name||"Kimeza member"}</Text><Text style={s.muted}>{i===0?"Player 1":"Player 2"}</Text></View>)}
  {room.status==="open"&&<Pressable disabled={busy||room.players.length!==2} onPress={start} style={[s.primary,room.players.length!==2&&s.disabled]}><Text style={s.primaryText}>Start game</Text></Pressable>}
- {room.status==="in_progress"&&<><View style={s.turn}><Text style={s.muted}>CURRENT TURN</Text><Text style={s.turnName}>{currentPlayer?.display_name||"Player"}</Text><Text style={s.timer}>{seconds}s</Text></View>{previous&&<Text style={s.muted}>Your word must begin with <Text style={s.letter}>{previous.slice(-1).toUpperCase()}</Text></Text>}
- <TextInput value={word} onChangeText={setWord} style={s.input} placeholder="Enter one word" autoCapitalize="none" editable={room.game_state.current_turn_user_id=== (globalThis as any).__kimezaUserId}/>
- <Pressable disabled={busy||!word.trim()} onPress={submit} style={s.primary}><Text style={s.primaryText}>Submit word</Text></Pressable></>}
+ {room.status==="in_progress"&&<><View style={s.turn}><Text style={s.muted}>CURRENT TURN</Text><Text style={s.turnName}>{currentPlayer?.display_name||"Player"}</Text><Text style={s.timer}>{seconds}s</Text><Text style={s.muted}>{room.game_state.current_turn_user_id===currentUserId?"It is your turn.":"Waiting for your opponent."}</Text></View>{previous&&<Text style={s.muted}>Your word must begin with <Text style={s.letter}>{previous.slice(-1).toUpperCase()}</Text></Text>}
+ <TextInput value={word} onChangeText={setWord} style={s.input} placeholder="Enter one word" autoCapitalize="none" editable={room.game_state.current_turn_user_id===currentUserId}/>
+ <Pressable disabled={busy||!word.trim()||room.game_state.current_turn_user_id!==currentUserId} onPress={submit} style={s.primary}><Text style={s.primaryText}>Submit word</Text></Pressable></>}
  </View>
  <Text style={s.section}>Word chain ({room.game_state.words?.length||0})</Text>
  {(room.game_state.words||[]).length===0?<Text style={s.muted}>The first player can begin with any word.</Text>:(room.game_state.words||[]).map((w,i)=><View key={w.turn} style={s.wordRow}><Text style={s.wordIndex}>{i+1}</Text><Text style={s.wordText}>{w.word}</Text><Text style={s.muted}>{room.players.find(p=>p.user_id===w.user_id)?.display_name||"Player"}</Text></View>)}
