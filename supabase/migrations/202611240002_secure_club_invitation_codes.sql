@@ -61,3 +61,11 @@ returns uuid language sql security invoker set search_path = ''
 as $$ select private.redeem_club_invitation_code(p_code); $$;
 revoke all on function public.redeem_club_invitation_code(text) from public, anon;
 grant execute on function public.redeem_club_invitation_code(text) to authenticated;
+
+-- Restrict direct table operations to the minimum required by the client.
+revoke all on table public.club_admins from anon, authenticated;
+grant select on table public.club_admins to authenticated;
+revoke insert, update, delete on table public.club_memberships from anon, authenticated;
+grant select, insert on table public.club_memberships to authenticated;
+revoke insert, update, delete on table public.clubs from anon, authenticated;
+grant select on table public.clubs to authenticated;
