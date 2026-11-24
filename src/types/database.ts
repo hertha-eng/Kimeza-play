@@ -565,6 +565,18 @@ export type Database = {
         Args: { p_code: string }
         Returns: string
       }
+      list_club_members: {
+        Args: { p_club_id: string }
+        Returns: {
+          membership_id: string
+          user_id: string
+          display_name: string
+          avatar_url: string | null
+          status: Database["public"]["Enums"]["membership_status"]
+          joined_at: string | null
+          created_at: string
+        }[]
+      }
       review_club_membership: {
         Args: { p_approve: boolean; p_membership_id: string }
         Returns: Database["public"]["Enums"]["membership_status"]
