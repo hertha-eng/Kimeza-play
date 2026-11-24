@@ -127,7 +127,7 @@ export default function GamesScreen() {
       if (validationError || !validation?.valid) { const reason = validation?.error || validationError?.message || "The word could not be verified in the English dictionary."; setRejection({ word: clean, reason }); await passTurn("invalid"); return; }
       const { data, error: submitError } = await supabase!.rpc("submit_word_chain_word", { p_match_id: room.id, p_word: clean });
       if (submitError) {
-        setError(submitError.message);
+        setRejection({ word: clean, reason: submitError.message });
         await passTurn("invalid");
       } else {
         accept(data); setWord(""); startedTyping.current = false;
