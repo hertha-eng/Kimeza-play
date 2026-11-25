@@ -10,7 +10,8 @@ type Challenge = { id:string; challenger_id:string; challenged_id:string|null; o
 const GAMES=[{label:"Word Chain",value:"word_chain"}];
 const REACTIONS=["👏","🔥","😂","❤️","💪","🎉"];
 
-export default function FellowshipScreen(){\n const router=useRouter();
+export default function FellowshipScreen(){
+ const router=useRouter();
  const [userId,setUserId]=useState("");const [clubId,setClubId]=useState("");const [clubName,setClubName]=useState("");
  const [rooms,setRooms]=useState<Room[]>([]);const [room,setRoom]=useState<Room|null>(null);
  const [members,setMembers]=useState<Member[]>([]);const [messages,setMessages]=useState<Message[]>([]);const [queue,setQueue]=useState<Challenge[]>([]);
@@ -37,7 +38,8 @@ export default function FellowshipScreen(){\n const router=useRouter();
 
  const loadRoom=useCallback(async(id:string)=>{
   if(!supabase)return;
-  await supabase.rpc("advance_fellowship_challenge_queue",{p_room_id:id});\n  const [mr,ms,ch]=await Promise.all([
+  await supabase.rpc("advance_fellowship_challenge_queue",{p_room_id:id});
+  const [mr,ms,ch]=await Promise.all([
    supabase.from("fellowship_room_members").select("user_id,member_kind,home_club_id,profiles(display_name)").eq("room_id",id).is("left_at",null).order("joined_at"),
    supabase.from("fellowship_room_messages").select("id,user_id,message,message_kind,created_at,profiles(display_name)").eq("room_id",id).order("created_at",{ascending:false}).limit(60),
    supabase.from("fellowship_challenges").select("id,challenger_id,challenged_id,offered_to_id,game_code,queue_position,status,expires_at,created_at,match_id").eq("room_id",id).in("status",["queued","offered","accepted","completed"]).order("queue_position")
@@ -117,7 +119,8 @@ export default function FellowshipScreen(){\n const router=useRouter();
     <Text style={s.fieldLabel}>Choose a game</Text><View style={s.gameGrid}>{GAMES.map(g=><Pressable key={g.value} onPress={()=>setGame(g.value)} style={[s.gameOption,game===g.value&&s.gameSelected]}><Text style={[s.gameText,game===g.value&&s.gameTextSelected]}>{g.label}</Text></Pressable>)}</View>
     <Text style={s.fieldLabel}>Challenge a specific player (optional)</Text><View style={s.targetList}><Pressable onPress={()=>setTarget(null)} style={[s.targetOption,!target&&s.targetSelected]}><Text style={[s.targetText,!target&&s.targetTextSelected]}>Open queue</Text></Pressable>{activeMembers.map(m=><Pressable key={m.user_id} onPress={()=>setTarget(m.user_id)} style={[s.targetOption,target===m.user_id&&s.targetSelected]}><Text style={[s.targetText,target===m.user_id&&s.targetTextSelected]}>{m.profiles?.display_name||"Member"}</Text></Pressable>)}</View>
     <Pressable onPress={()=>void addChallenge()} disabled={busy} style={[s.primary,busy&&s.disabled]}><Text style={s.primaryText}>{busy?"Please wait…":"Add to match queue"}</Text></Pressable>
-    {room.status==="active_game"&&queue.find(q=>q.match_id)&&<Pressable onPress={()=>router.push({pathname:"/gallery",params:{match:queue.find(q=>q.match_id)!.match_id!}})} style={[s.primary,{backgroundColor:"#B17B27"}]}><Text style={s.primaryText}>Enter The Gallery · Watch live</Text></Pressable>}\n    <Text style={s.fieldLabel}>Queue</Text>
+    {room.status==="active_game"&&queue.find(q=>q.match_id)&&<Pressable onPress={()=>router.push({pathname:"/gallery",params:{match:queue.find(q=>q.match_id)!.match_id!}})} style={[s.primary,{backgroundColor:"#B17B27"}]}><Text style={s.primaryText}>Enter The Gallery · Watch live</Text></Pressable>}
+    <Text style={s.fieldLabel}>Queue</Text>
     {queue.length===0?<Text style={s.empty}>The queue is clear. Be the first to request a game.</Text>:queue.map((q,i)=>{const incoming=q.status==="offered"&&q.offered_to_id===userId;const own=q.challenger_id===userId;return <View key={q.id} style={s.queueRow}><View style={s.queueNumber}><Text style={s.queueNumberText}>{i+1}</Text></View><View style={{flex:1}}><Text style={s.memberName}>{GAMES.find(g=>g.value===q.game_code)?.label||q.game_code.replace(/_/g," ")}</Text><Text style={s.memberType}>{own?"Your request":q.challenged_id?"Direct challenge":"Open match"}  ·  {q.status}{q.status==="offered"&&q.expires_at?` · responds by ${new Date(q.expires_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}`:""}</Text></View>{q.status==="accepted"&&(q.challenger_id===userId||q.offered_to_id===userId)&&<Pressable onPress={()=>void launchMatch(q.id)} disabled={busy} style={s.accept}><Text style={s.acceptText}>Launch Word Chain</Text></Pressable>}{incoming&&<View style={s.queueActions}><Pressable onPress={()=>void respond(q.id,true)} style={s.accept}><Text style={s.acceptText}>Accept</Text></Pressable><Pressable onPress={()=>void respond(q.id,false)} style={s.pass}><Text style={s.passText}>Pass</Text></Pressable></View>}</View>})}
    </View>
   </>:<>
