@@ -9,7 +9,7 @@ type Reaction = { user_id: string; reaction: string; created_at: string };
 type GameState = {
   words: Word[]; current_turn_user_id: string; turn_number: number; started: boolean;
   turn_deadline?: string; typing_deadline?: string; match_deadline?: string;
-  turn_started_at?: string; winner_user_id?: string | null; end_reason?: string;
+  turn_started_at?: string; live_draft_user_id?: string | null; live_draft?: string | null; winner_user_id?: string | null; end_reason?: string;
   final_counts?: Record<string, number>; missed_turns?: Record<string, number>; streaks?: Record<string, number>;
 };
 type Room = { id: string; title: string; game_code: string; status: string; room_code: string;
@@ -87,7 +87,7 @@ export default function GamesScreen() {
     void finishMatch();
   }, [matchSeconds, room?.id, room?.status]);
 
-  async function action(fn: () => Promise<any>, success?: string) {
+  async function action(fn: () => PromiseLike<any>, success?: string) {
     if (busyRef.current) return;
     busyRef.current = true; setBusy(true); setError(""); setNotice("");
     try {
