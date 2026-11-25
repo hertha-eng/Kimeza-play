@@ -88,6 +88,7 @@ export default function DashboardScreen() {
           </View>
           <Pressable onPress={() => router.push("/club-membership")} style={styles.membershipButton}><Text style={styles.membershipButtonText}>{membership ? "View club membership" : "Find or join a club"}</Text></Pressable>
           <Pressable onPress={() => router.push("/club-admin")} style={styles.membershipButton}><Text style={styles.membershipButtonText}>Open club administration</Text></Pressable>
+          <Pressable onPress={() => router.push("/fellowship")} style={styles.membershipButton}><Text style={styles.membershipButtonText}>Open club fellowship rooms</Text></Pressable>
           {profile?.platform_role === "platform_admin" && <Pressable onPress={() => router.push("/platform-admin")} style={styles.membershipButton}><Text style={styles.membershipButtonText}>Open platform administration</Text></Pressable>}
           <Text style={styles.sectionTitle}>Your Kimeza space</Text>
           <View style={styles.grid}>
