@@ -51,7 +51,7 @@ export default function FellowshipScreen(){
  useEffect(()=>{void loadRooms();},[loadRooms]);
  useEffect(()=>{if(!room)return;void loadRoom(room.id);const timer=setInterval(()=>void loadRoom(room.id),5000);return()=>clearInterval(timer);},[room?.id,loadRoom]);
 
- async function perform(action:()=>Promise<{data:any;error:any}>,success:string){
+ async function perform(action:()=>PromiseLike<{data:any;error:any}>,success:string){
   if(busy)return null;setBusy(true);setError("");setNotice("");
   try{const result=await action();if(result.error)throw result.error;setNotice(success);return {ok:true,data:result.data};}
   catch(e:any){setError(e?.message||"That action could not be completed. Please try again.");return {ok:false,data:null};}
