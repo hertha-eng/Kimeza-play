@@ -34,6 +34,7 @@ export default function GamesScreen() {
   const startedTyping = useRef(false);
   const autoSubmittedFor = useRef("");
   const busyRef = useRef(false);
+  const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleError = (e: any) => setError(e?.message || "Something went wrong. Please try again.");
   const accept = (data: any) => { if (data) { setRoom(data as Room); setCode(data.room_code || ""); } };
@@ -109,6 +110,13 @@ export default function GamesScreen() {
     if (!room) return;
     startedTyping.current = false; autoSubmittedFor.current = "";
     await action(() => supabase!.rpc("start_word_chain_room", { p_match_id: room.id }), "Game started. Each player has 30 seconds to enter and submit a word.");
+  }
+  async function shareDraft(value: string) {
+    if (!room || room.game_state.current_turn_user_id !== currentUserId || !startedTyping.current) return;
+    if (draftTimer.current) clearTimeout(draftTimer.current);
+    draftTimer.current = setTimeout(() => {
+      void supabase!.rpc("update_word_chain_draft", { p_match_id: room.id, p_draft: value });
+    }, 350);
   }
   async function beginTyping() {
     if (!room || startedTyping.current || room.game_state.current_turn_user_id !== currentUserId) return;
@@ -191,10 +199,11 @@ export default function GamesScreen() {
             <View style={s.clock}><Text style={s.muted}>YOUR TURN CLOCK</Text><Text style={s.timer}>{room.game_state.turn_deadline ? `${seconds}s` : (myTurn ? "READY" : "—")}</Text></View></View>
           <View style={s.turn}><Text style={s.muted}>CURRENT TURN</Text><Text style={s.turnName}>{currentPlayer?.display_name || "Player"}</Text>
             <Text style={s.muted}>{myTurn ? "Your turn. Think first if you need to; the 30-second clock starts when you type your first letter." : "Waiting for your opponent to finish their turn."}</Text></View>
+          {!myTurn && room.game_state.live_draft_user_id === room.game_state.current_turn_user_id && !!room.game_state.live_draft && <View style={s.liveDraft}><Text style={s.liveDraftLabel}>OPPONENT IS TYPING</Text><Text style={s.liveDraftText}>{room.game_state.live_draft}</Text></View>}
           {myTurn && <>
             {previous && <Text style={s.muted}>Your word must begin with <Text style={s.letter}>{previous.slice(-1).toUpperCase()}</Text></Text>}
             {!room.game_state.turn_deadline && <Text style={s.muted}>Your 30-second clock starts with your first letter. Take a moment to think before typing.</Text>}
-            <TextInput value={word} onChangeText={v => { setWord(v); setRejection(null); if (v.length > 0) void beginTyping(); }} style={s.input}
+            <TextInput value={word} onChangeText={v => { setWord(v); setRejection(null); if (v.length > 0) { void beginTyping(); void shareDraft(v); } }} style={s.input}
               placeholder="Start typing a word…" autoCapitalize="none" editable={!busy} />
             <Pressable disabled={busy || !word.trim()} onPress={() => void submitWord(false)} style={s.primary}><Text style={s.primaryText}>Submit word now</Text></Pressable>
           </>}
@@ -225,6 +234,7 @@ const s = StyleSheet.create({
  label:{color:"#68776F",fontSize:10,fontWeight:"900",letterSpacing:1,marginTop:5},input:{backgroundColor:"#F8FAF8",borderWidth:1,borderColor:"#DCE5DE",borderRadius:11,padding:14,color:"#18352C",marginTop:14,marginBottom:12},
  primary:{backgroundColor:"#153B30",borderRadius:11,padding:14,alignItems:"center",marginTop:6},primaryText:{color:"#fff",fontWeight:"900"},
  secondary:{backgroundColor:"#E7F0E9",borderRadius:11,padding:14,alignItems:"center"},secondaryText:{color:"#176B45",fontWeight:"900"},
+ liveDraft:{backgroundColor:"#F3F6FF",borderWidth:1,borderColor:"#CBD5F5",padding:14,borderRadius:12,marginTop:12,marginBottom:12},liveDraftLabel:{color:"#4056A1",fontWeight:"900",fontSize:10,letterSpacing:1},liveDraftText:{color:"#263B7A",fontSize:20,fontWeight:"800",letterSpacing:1,marginTop:6},
  rejection:{backgroundColor:"#FFF1F0",borderWidth:1,borderColor:"#F2B8B5",padding:14,borderRadius:12,marginBottom:12},rejectionTitle:{color:"#B42318",fontWeight:"900",fontSize:11,letterSpacing:1},rejectionWord:{color:"#842029",fontWeight:"900",fontSize:18,marginTop:5},rejectionReason:{color:"#842029",fontSize:13,lineHeight:19,marginTop:5},rejectionHint:{color:"#8A4B48",fontSize:11,marginTop:6},error:{color:"#B42318",backgroundColor:"#FEF3F2",padding:12,borderRadius:10,marginBottom:12},notice:{color:"#176B45",backgroundColor:"#ECFDF3",padding:12,borderRadius:10,marginBottom:12},
  roomHead:{backgroundColor:"#102A24",borderRadius:15,padding:18,marginBottom:12,flexDirection:"row",justifyContent:"space-between",alignItems:"center"},
  roomCode:{color:"#E2B55F",fontSize:28,fontWeight:"900",letterSpacing:4},leave:{backgroundColor:"#fff",padding:10,borderRadius:9},
