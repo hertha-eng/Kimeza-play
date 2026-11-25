@@ -10,7 +10,7 @@ type GameState = {
   words: Word[]; current_turn_user_id: string; turn_number: number; started: boolean;
   turn_deadline?: string; typing_deadline?: string; match_deadline?: string;
   turn_started_at?: string; winner_user_id?: string | null; end_reason?: string;
-  final_counts?: Record<string, number>; missed_turns?: Record<string, number>;
+  final_counts?: Record<string, number>; missed_turns?: Record<string, number>; streaks?: Record<string, number>;
 };
 type Room = { id: string; title: string; game_code: string; status: string; room_code: string;
   max_players: number; turn_duration_seconds: number; match_duration_seconds: number; game_state: GameState; players: Player[]; reactions?: Reaction[] };
