@@ -59,7 +59,7 @@ export default function GamesScreen() {
     if (room?.status !== "in_progress") { setSeconds(0); setMatchSeconds(0); return; }
     const tick = () => {
       const now = Date.now();
-      setSeconds(Math.max(0, Math.ceil((new Date(room.game_state.turn_deadline || 0).getTime() - now) / 1000)));
+      setSeconds(room.game_state.turn_deadline ? Math.max(0, Math.ceil((new Date(room.game_state.turn_deadline).getTime() - now) / 1000)) : 0);
       setMatchSeconds(Math.max(0, Math.ceil((new Date(room.game_state.match_deadline || 0).getTime() - now) / 1000)));
     };
     tick();
@@ -188,13 +188,14 @@ export default function GamesScreen() {
           <Pressable disabled={busy || room.players.length !== 2} onPress={start} style={[s.primary, (busy || room.players.length !== 2) && s.disabled]}><Text style={s.primaryText}>Start game</Text></Pressable></>}
         {room.status === "in_progress" && <>
           <View style={s.clockRow}><View style={s.clock}><Text style={s.muted}>MATCH TIME LEFT</Text><Text style={s.matchTimer}>{Math.floor(matchSeconds / 60)}:{String(matchSeconds % 60).padStart(2, "0")}</Text></View>
-            <View style={s.clock}><Text style={s.muted}>YOUR TURN CLOCK</Text><Text style={s.timer}>{seconds}s</Text></View></View>
+            <View style={s.clock}><Text style={s.muted}>YOUR TURN CLOCK</Text><Text style={s.timer}>{room.game_state.turn_deadline ? `${seconds}s` : (myTurn ? "READY" : "—")}</Text></View></View>
           <View style={s.turn}><Text style={s.muted}>CURRENT TURN</Text><Text style={s.turnName}>{currentPlayer?.display_name || "Player"}</Text>
-            <Text style={s.muted}>{myTurn ? "Your turn. You have 30 seconds to enter and submit your word." : "Waiting for your opponent."}</Text></View>
+            <Text style={s.muted}>{myTurn ? "Your turn. Think first if you need to; the 30-second clock starts when you type your first letter." : "Waiting for your opponent to finish their turn."}</Text></View>
           {myTurn && <>
             {previous && <Text style={s.muted}>Your word must begin with <Text style={s.letter}>{previous.slice(-1).toUpperCase()}</Text></Text>}
+            {!room.game_state.turn_deadline && <Text style={s.muted}>Your 30-second clock starts with your first letter. Take a moment to think before typing.</Text>}
             <TextInput value={word} onChangeText={v => { setWord(v); setRejection(null); if (v.length > 0) void beginTyping(); }} style={s.input}
-              placeholder="Start typing a word…" autoCapitalize="none" editable={!busy && seconds > 0} />
+              placeholder="Start typing a word…" autoCapitalize="none" editable={!busy} />
             <Pressable disabled={busy || !word.trim()} onPress={() => void submitWord(false)} style={s.primary}><Text style={s.primaryText}>Submit word now</Text></Pressable>
           </>}
         </>}
