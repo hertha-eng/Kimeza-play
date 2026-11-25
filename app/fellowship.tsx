@@ -90,6 +90,15 @@ export default function FellowshipScreen(){
   if(!supabase||!room)return;const result=await perform(()=>supabase!.rpc("respond_fellowship_challenge",{p_challenge_id:id,p_accept:accept}),accept?"You accepted the match request.":"You passed on the match request.");
   if(result?.ok)await loadRoom(room.id);
  }
+ async function launchMatch(id:string){
+  if(!supabase||!room)return;
+  const result=await perform(()=>supabase!.rpc("launch_accepted_fellowship_challenge",{p_challenge_id:id}),"The match is ready. Opening Word Chain.");
+  if(result?.ok&&result.data){
+   const matchId=typeof result.data==="string"?result.data:result.data.match_id||result.data.id;
+   if(matchId)router.push({pathname:"/games",params:{room:matchId}});
+   else await loadRoom(room.id);
+  }
+ }
  async function refresh(){
   setRefreshing(true);await loadRooms();if(room)await loadRoom(room.id);setRefreshing(false);
  }
