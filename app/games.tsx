@@ -180,6 +180,7 @@ export default function GamesScreen() {
   const counts = room?.players.map(p => ({ ...p, count: room.game_state.words.filter(w => w.user_id === p.user_id).length,
     longest: Math.max(0, ...room.game_state.words.filter(w => w.user_id === p.user_id).map(w => w.word.length)),
     missed: room.game_state.missed_turns?.[p.user_id] || 0,
+    streak: room.game_state.streaks?.[p.user_id] || 0,
     avg: room.game_state.words.filter(w => w.user_id === p.user_id).length
       ? Math.round(room.game_state.words.filter(w => w.user_id === p.user_id).reduce((n, w) => n + (w.response_ms || 0), 0) /
         room.game_state.words.filter(w => w.user_id === p.user_id).length) : 0 })) || [];
@@ -229,12 +230,12 @@ export default function GamesScreen() {
       </View>
       {room.status === "in_progress" && <View style={s.card}><Text style={s.heading}>Quick reactions</Text><View style={s.reactionRow}>{["🔥","😂","👏","😮","💪","❤️"].map(x=><Pressable key={x} onPress={()=>void sendReaction(x)} style={s.reaction}><Text style={s.reactionEmoji}>{x}</Text></Pressable>)}</View>{(room.reactions || []).slice(0,4).map((r,i)=><Text key={r.created_at+i} style={s.muted}>{room.players.find(p=>p.user_id===r.user_id)?.display_name || "Player"} {r.reaction}</Text>)}</View>}
       {room.status === "in_progress" && <View style={s.card}><Text style={s.heading}>Live scores & speed</Text>
-        {counts.map(p => <View key={p.user_id} style={s.scoreRow}><Text style={s.playerName}>{p.display_name}</Text><Text style={s.scoreValue}>{p.count} words</Text><Text style={s.muted}>Avg. {p.count ? (p.avg / 1000).toFixed(1) + "s" : "—"} • Longest {p.longest} letters • Missed {p.missed}</Text></View>)}
+        {counts.map(p => <View key={p.user_id} style={s.scoreRow}><Text style={s.playerName}>{p.display_name}</Text><Text style={s.scoreValue}>{p.count} words</Text><Text style={s.muted}>Avg. {p.count ? (p.avg / 1000).toFixed(1) + "s" : "—"} • Longest {p.longest} letters • Streak {p.streak} • Missed {p.missed}</Text></View>)}
       </View>}
       {room.status === "completed" && <View style={s.card}><Text style={s.heading}>Game complete</Text>
         {room.game_state.winner_user_id ? <Text style={s.turnName}>{room.players.find(p => p.user_id === room.game_state.winner_user_id)?.display_name || "Winner"} wins!</Text> : <Text style={s.turnName}>It’s a draw!</Text>}
         <Text style={s.muted}>Final score is based on valid words. Friendly-play points are saved; no club, zone or district score was awarded.</Text>
-        {counts.map(p => <View key={p.user_id} style={s.scoreRow}><Text style={s.playerName}>{p.display_name}</Text><Text style={s.scoreValue}>{p.count} valid words</Text><Text style={s.muted}>Average {p.count ? (p.avg / 1000).toFixed(1) + "s" : "—"} • Longest {p.longest} letters • Missed turns {p.missed}</Text></View>)}
+        {counts.map(p => <View key={p.user_id} style={s.scoreRow}><Text style={s.playerName}>{p.display_name}</Text><Text style={s.scoreValue}>{p.count} valid words</Text><Text style={s.muted}>Average {p.count ? (p.avg / 1000).toFixed(1) + "s" : "—"} • Longest {p.longest} letters • Best live streak {p.streak} • Missed turns {p.missed}</Text></View>)}
       </View>}
         <Pressable disabled={rematchBusy} onPress={()=>void inviteRematch()} style={s.primary}><Text style={s.primaryText}>{rematchBusy ? "Creating rematch…" : "Create rematch room"}</Text></Pressable>
       <Text style={s.section}>Word chain ({room.game_state.words?.length || 0})</Text>
