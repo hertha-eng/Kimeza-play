@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { supabase } from "../src/lib/supabase";
 
@@ -7,10 +7,10 @@ type Room = { id:string; club_id:string; title:string; status:string; break_dura
 type Member = { user_id:string; member_kind:string; home_club_id:string|null; profiles?:{display_name:string}|null };
 type Message = { id:string; user_id:string; message:string; message_kind:string; created_at:string; profiles?:{display_name:string}|null };
 type Challenge = { id:string; challenger_id:string; challenged_id:string|null; offered_to_id:string|null; game_code:string; queue_position:number; status:string; expires_at:string|null; created_at:string };
-const GAMES=[{label:"Word Chain",value:"word_chain"},{label:"Trivia Showdown",value:"trivia_showdown"},{label:"Draughts",value:"draughts"},{label:"Ludo",value:"ludo"},{label:"Boggle",value:"boggle"},{label:"Quick-Draw Buzzer",value:"quick_draw_buzzer"}];
+const GAMES=[{label:"Word Chain",value:"word_chain"}];
 const REACTIONS=["👏","🔥","😂","❤️","💪","🎉"];
 
-export default function FellowshipScreen(){
+export default function FellowshipScreen(){\n const router=useRouter();
  const [userId,setUserId]=useState("");const [clubId,setClubId]=useState("");const [clubName,setClubName]=useState("");
  const [rooms,setRooms]=useState<Room[]>([]);const [room,setRoom]=useState<Room|null>(null);
  const [members,setMembers]=useState<Member[]>([]);const [messages,setMessages]=useState<Message[]>([]);const [queue,setQueue]=useState<Challenge[]>([]);
@@ -113,12 +113,12 @@ export default function FellowshipScreen(){
     <View style={s.reactions}>{REACTIONS.map(x=><Pressable key={x} onPress={()=>void post("reaction",x)} disabled={busy} style={s.reaction}><Text style={s.reactionText}>{x}</Text></Pressable>)}</View>
     {messages.length===0?<Text style={s.empty}>No messages yet. Start the conversation.</Text>:messages.map(m=><View key={m.id} style={s.chatRow}><View style={s.chatAvatar}><Text style={s.chatAvatarText}>{(m.profiles?.display_name||"M").slice(0,1).toUpperCase()}</Text></View><View style={s.chatBubble}><Text style={s.chatName}>{m.profiles?.display_name||"Member"} <Text style={s.chatTime}>{new Date(m.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</Text></Text><Text style={s.chatText}>{m.message}</Text></View></View>)}
    </View>
-   <View style={s.card}><Text style={s.sectionTitle}>Next up: friendly match</Text><Text style={s.muted}>Request a game for the queue or challenge someone directly. Organisational scoring must be authorised separately.</Text>
+   <View style={s.card}><Text style={s.sectionTitle}>Next up: friendly match</Text><Text style={s.muted}>Word Chain is currently connected to the live match engine. Other games will become selectable here as their engines are completed. Organisational scoring must be authorised separately.</Text>
     <Text style={s.fieldLabel}>Choose a game</Text><View style={s.gameGrid}>{GAMES.map(g=><Pressable key={g.value} onPress={()=>setGame(g.value)} style={[s.gameOption,game===g.value&&s.gameSelected]}><Text style={[s.gameText,game===g.value&&s.gameTextSelected]}>{g.label}</Text></Pressable>)}</View>
     <Text style={s.fieldLabel}>Challenge a specific player (optional)</Text><View style={s.targetList}><Pressable onPress={()=>setTarget(null)} style={[s.targetOption,!target&&s.targetSelected]}><Text style={[s.targetText,!target&&s.targetTextSelected]}>Open queue</Text></Pressable>{activeMembers.map(m=><Pressable key={m.user_id} onPress={()=>setTarget(m.user_id)} style={[s.targetOption,target===m.user_id&&s.targetSelected]}><Text style={[s.targetText,target===m.user_id&&s.targetTextSelected]}>{m.profiles?.display_name||"Member"}</Text></Pressable>)}</View>
     <Pressable onPress={()=>void addChallenge()} disabled={busy} style={[s.primary,busy&&s.disabled]}><Text style={s.primaryText}>{busy?"Please wait…":"Add to match queue"}</Text></Pressable>
     <Text style={s.fieldLabel}>Queue</Text>
-    {queue.length===0?<Text style={s.empty}>The queue is clear. Be the first to request a game.</Text>:queue.map((q,i)=>{const incoming=q.status==="offered"&&q.offered_to_id===userId;const own=q.challenger_id===userId;return <View key={q.id} style={s.queueRow}><View style={s.queueNumber}><Text style={s.queueNumberText}>{i+1}</Text></View><View style={{flex:1}}><Text style={s.memberName}>{GAMES.find(g=>g.value===q.game_code)?.label||q.game_code.replace(/_/g," ")}</Text><Text style={s.memberType}>{own?"Your request":q.challenged_id?"Direct challenge":"Open match"}  ·  {q.status}{q.status==="offered"&&q.expires_at?` · responds by ${new Date(q.expires_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}`:""}</Text></View>{incoming&&<View style={s.queueActions}><Pressable onPress={()=>void respond(q.id,true)} style={s.accept}><Text style={s.acceptText}>Accept</Text></Pressable><Pressable onPress={()=>void respond(q.id,false)} style={s.pass}><Text style={s.passText}>Pass</Text></Pressable></View>}</View>})}
+    {queue.length===0?<Text style={s.empty}>The queue is clear. Be the first to request a game.</Text>:queue.map((q,i)=>{const incoming=q.status==="offered"&&q.offered_to_id===userId;const own=q.challenger_id===userId;return <View key={q.id} style={s.queueRow}><View style={s.queueNumber}><Text style={s.queueNumberText}>{i+1}</Text></View><View style={{flex:1}}><Text style={s.memberName}>{GAMES.find(g=>g.value===q.game_code)?.label||q.game_code.replace(/_/g," ")}</Text><Text style={s.memberType}>{own?"Your request":q.challenged_id?"Direct challenge":"Open match"}  ·  {q.status}{q.status==="offered"&&q.expires_at?` · responds by ${new Date(q.expires_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}`:""}</Text></View>{q.status==="accepted"&&(q.challenger_id===userId||q.offered_to_id===userId)&&<Pressable onPress={()=>void launchMatch(q.id)} disabled={busy} style={s.accept}><Text style={s.acceptText}>Launch Word Chain</Text></Pressable>}{incoming&&<View style={s.queueActions}><Pressable onPress={()=>void respond(q.id,true)} style={s.accept}><Text style={s.acceptText}>Accept</Text></Pressable><Pressable onPress={()=>void respond(q.id,false)} style={s.pass}><Text style={s.passText}>Pass</Text></Pressable></View>}</View>})}
    </View>
   </>:<>
    {clubId&&<View style={s.card}><Text style={s.sectionTitle}>Host a fellowship</Text><Text style={s.muted}>Create a room for your club. Club administrators can open rooms; all signed-in Kimeza members can visit.</Text>
