@@ -6,7 +6,7 @@ import { supabase } from "../src/lib/supabase";
 type Room = { id:string; club_id:string; title:string; status:string; break_duration_seconds:number; opened_at:string; club_name?:string|null; member_count?:number; clubs?:{name:string}|null };
 type Member = { user_id:string; member_kind:string; home_club_id:string|null; profiles?:{display_name:string}|null };
 type Message = { id:string; user_id:string; message:string; message_kind:string; created_at:string; profiles?:{display_name:string}|null };
-type Challenge = { id:string; challenger_id:string; challenged_id:string|null; game_code:string; queue_position:number; status:string; created_at:string };
+type Challenge = { id:string; challenger_id:string; challenged_id:string|null; offered_to_id:string|null; game_code:string; queue_position:number; status:string; expires_at:string|null; created_at:string };
 const GAMES=[{label:"Word Chain",value:"word_chain"},{label:"Trivia Showdown",value:"trivia_showdown"},{label:"Draughts",value:"draughts"},{label:"Ludo",value:"ludo"},{label:"Boggle",value:"boggle"},{label:"Quick-Draw Buzzer",value:"quick_draw_buzzer"}];
 const REACTIONS=["👏","🔥","😂","❤️","💪","🎉"];
 
@@ -37,10 +37,10 @@ export default function FellowshipScreen(){
 
  const loadRoom=useCallback(async(id:string)=>{
   if(!supabase)return;
-  const [mr,ms,ch]=await Promise.all([
+  await supabase.rpc("advance_fellowship_challenge_queue",{p_room_id:id});\n  const [mr,ms,ch]=await Promise.all([
    supabase.from("fellowship_room_members").select("user_id,member_kind,home_club_id,profiles(display_name)").eq("room_id",id).is("left_at",null).order("joined_at"),
    supabase.from("fellowship_room_messages").select("id,user_id,message,message_kind,created_at,profiles(display_name)").eq("room_id",id).order("created_at",{ascending:false}).limit(60),
-   supabase.from("fellowship_challenges").select("id,challenger_id,challenged_id,game_code,queue_position,status,created_at").eq("room_id",id).in("status",["queued","offered","accepted"]).order("queue_position")
+   supabase.from("fellowship_challenges").select("id,challenger_id,challenged_id,offered_to_id,game_code,queue_position,status,expires_at,created_at").eq("room_id",id).in("status",["queued","offered","accepted"]).order("queue_position")
   ]);
   const issue=mr.error||ms.error||ch.error;if(issue){setError(issue.message);return;}
   setMembers((mr.data||[]) as unknown as Member[]);setMessages((ms.data||[]) as unknown as Message[]);setQueue((ch.data||[]) as Challenge[]);
@@ -118,7 +118,7 @@ export default function FellowshipScreen(){
     <Text style={s.fieldLabel}>Challenge a specific player (optional)</Text><View style={s.targetList}><Pressable onPress={()=>setTarget(null)} style={[s.targetOption,!target&&s.targetSelected]}><Text style={[s.targetText,!target&&s.targetTextSelected]}>Open queue</Text></Pressable>{activeMembers.map(m=><Pressable key={m.user_id} onPress={()=>setTarget(m.user_id)} style={[s.targetOption,target===m.user_id&&s.targetSelected]}><Text style={[s.targetText,target===m.user_id&&s.targetTextSelected]}>{m.profiles?.display_name||"Member"}</Text></Pressable>)}</View>
     <Pressable onPress={()=>void addChallenge()} disabled={busy} style={[s.primary,busy&&s.disabled]}><Text style={s.primaryText}>{busy?"Please wait…":"Add to match queue"}</Text></Pressable>
     <Text style={s.fieldLabel}>Queue</Text>
-    {queue.length===0?<Text style={s.empty}>The queue is clear. Be the first to request a game.</Text>:queue.map((q,i)=>{const incoming=q.challenged_id===userId||(!q.challenged_id&&q.challenger_id!==userId);const own=q.challenger_id===userId;return <View key={q.id} style={s.queueRow}><View style={s.queueNumber}><Text style={s.queueNumberText}>{i+1}</Text></View><View style={{flex:1}}><Text style={s.memberName}>{GAMES.find(g=>g.value===q.game_code)?.label||q.game_code.replace(/_/g," ")}</Text><Text style={s.memberType}>{own?"Your request":q.challenged_id?"Direct challenge":"Open match"}  ·  {q.status}</Text></View>{incoming&&q.status!=="accepted"&&<View style={s.queueActions}><Pressable onPress={()=>void respond(q.id,true)} style={s.accept}><Text style={s.acceptText}>Accept</Text></Pressable><Pressable onPress={()=>void respond(q.id,false)} style={s.pass}><Text style={s.passText}>Pass</Text></Pressable></View>}</View>})}
+    {queue.length===0?<Text style={s.empty}>The queue is clear. Be the first to request a game.</Text>:queue.map((q,i)=>{const incoming=q.status==="offered"&&q.offered_to_id===userId;const own=q.challenger_id===userId;return <View key={q.id} style={s.queueRow}><View style={s.queueNumber}><Text style={s.queueNumberText}>{i+1}</Text></View><View style={{flex:1}}><Text style={s.memberName}>{GAMES.find(g=>g.value===q.game_code)?.label||q.game_code.replace(/_/g," ")}</Text><Text style={s.memberType}>{own?"Your request":q.challenged_id?"Direct challenge":"Open match"}  ·  {q.status}{q.status==="offered"&&q.expires_at?` · responds by ${new Date(q.expires_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}`:""}</Text></View>{incoming&&<View style={s.queueActions}><Pressable onPress={()=>void respond(q.id,true)} style={s.accept}><Text style={s.acceptText}>Accept</Text></Pressable><Pressable onPress={()=>void respond(q.id,false)} style={s.pass}><Text style={s.passText}>Pass</Text></Pressable></View>}</View>})}
    </View>
   </>:<>
    {clubId&&<View style={s.card}><Text style={s.sectionTitle}>Host a fellowship</Text><Text style={s.muted}>Create a room for your club. Club administrators can open rooms; all signed-in Kimeza members can visit.</Text>
