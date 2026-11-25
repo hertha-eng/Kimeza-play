@@ -53,40 +53,40 @@ export default function FellowshipScreen(){
 
  async function perform(action:()=>Promise<{data:any;error:any}>,success:string){
   if(busy)return null;setBusy(true);setError("");setNotice("");
-  try{const result=await action();if(result.error)throw result.error;setNotice(success);return result.data;}
-  catch(e:any){setError(e?.message||"That action could not be completed. Please try again.");return null;}
+  try{const result=await action();if(result.error)throw result.error;setNotice(success);return {ok:true,data:result.data};}
+  catch(e:any){setError(e?.message||"That action could not be completed. Please try again.");return {ok:false,data:null};}
   finally{setBusy(false);}
  }
  async function createRoom(){
   if(!supabase||!clubId)return;
   const mins=Number(breakMinutes);if(!Number.isFinite(mins)||mins<1||mins>30){setError("Choose a break duration from 1 to 30 minutes.");return;}
   const id=await perform(()=>supabase!.rpc("create_fellowship_room",{p_club_id:clubId,p_title:title.trim()||"Club Fellowship",p_break_seconds:mins*60}),"Your fellowship room is ready.");
-  if(!id)return;
+  if(!id?.ok||!id.data)return;
   await loadRooms();
-  const {data}=await supabase.from("fellowship_rooms").select("id,club_id,title,status,break_duration_seconds,opened_at,clubs(name)").eq("id",id).maybeSingle();
-  if(data){setRoom(data as unknown as Room);await loadRoom(id);}
+  const {data}=await supabase.from("fellowship_rooms").select("id,club_id,title,status,break_duration_seconds,opened_at,clubs(name)").eq("id",id.data).maybeSingle();
+  if(data){setRoom(data as unknown as Room);await loadRoom(id.data);}
  }
  async function joinRoom(r:Room){
   if(!supabase)return;const result=await perform(()=>supabase!.rpc("join_fellowship_room",{p_room_id:r.id}),"You are now in the room.");
-  if(!result)return;setRoom(r);await loadRoom(r.id);
+  if(!result?.ok)return;setRoom(r);await loadRoom(r.id);
  }
  async function leaveRoom(){
   if(!supabase||!room)return;const result=await perform(()=>supabase!.rpc("leave_fellowship_room",{p_room_id:room.id}),"You have left the room.");
-  if(result===null)return;setRoom(null);setMembers([]);setMessages([]);setQueue([]);await loadRooms();
+  if(!result?.ok)return;setRoom(null);setMembers([]);setMessages([]);setQueue([]);await loadRooms();
  }
  async function post(kind:"comment"|"reaction"="comment",value=message){
   if(!supabase||!room||!value.trim())return;
   const result=await perform(()=>supabase!.rpc("post_fellowship_message",{p_room_id:room.id,p_message:value.trim(),p_kind:kind}),"");
-  if(result!==null){if(kind==="comment")setMessage("");await loadRoom(room.id);}
+  if(result?.ok){if(kind==="comment")setMessage("");await loadRoom(room.id);}
  }
  async function addChallenge(){
   if(!supabase||!room)return;
   const result=await perform(()=>supabase!.rpc("queue_fellowship_challenge",{p_room_id:room.id,p_game_code:game,p_challenged_id:target}),"Your request has been added to the queue.");
-  if(result){setTarget(null);await loadRoom(room.id);}
+  if(result?.ok){setTarget(null);await loadRoom(room.id);}
  }
  async function respond(id:string,accept:boolean){
   if(!supabase||!room)return;const result=await perform(()=>supabase!.rpc("respond_fellowship_challenge",{p_challenge_id:id,p_accept:accept}),accept?"You accepted the match request.":"You passed on the match request.");
-  if(result!==null)await loadRoom(room.id);
+  if(result?.ok)await loadRoom(room.id);
  }
  async function refresh(){
   setRefreshing(true);await loadRooms();if(room)await loadRoom(room.id);setRefreshing(false);
