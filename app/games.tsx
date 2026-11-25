@@ -5,6 +5,7 @@ import { supabase } from "../src/lib/supabase";
 
 type Player = { user_id: string; display_name: string; joined_at: string };
 type Word = { word: string; user_id: string; turn: number; played_at: string; response_ms?: number };
+type Reaction = { user_id: string; reaction: string; created_at: string };
 type GameState = {
   words: Word[]; current_turn_user_id: string; turn_number: number; started: boolean;
   turn_deadline?: string; typing_deadline?: string; match_deadline?: string;
@@ -12,7 +13,7 @@ type GameState = {
   final_counts?: Record<string, number>; missed_turns?: Record<string, number>;
 };
 type Room = { id: string; title: string; game_code: string; status: string; room_code: string;
-  max_players: number; turn_duration_seconds: number; match_duration_seconds: number; game_state: GameState; players: Player[] };
+  max_players: number; turn_duration_seconds: number; match_duration_seconds: number; game_state: GameState; players: Player[]; reactions?: Reaction[] };
 
 const DURATIONS = [{ label: "2 min", value: 120 }, { label: "3 min", value: 180 }, { label: "5 min", value: 300 }, { label: "10 min", value: 600 }, { label: "15 min", value: 900 }];
 
@@ -30,6 +31,7 @@ export default function GamesScreen() {
   const [rejection, setRejection] = useState<{ word: string; reason: string } | null>(null);
   const [seconds, setSeconds] = useState(0);
   const [matchSeconds, setMatchSeconds] = useState(0);
+  const [rematchBusy, setRematchBusy] = useState(false);
   const [currentUserId, setCurrentUserId] = useState("");
   const startedTyping = useRef(false);
   const autoSubmittedFor = useRef("");
@@ -153,6 +155,20 @@ export default function GamesScreen() {
     if (!room || busyRef.current) return;
     await action(() => supabase!.rpc("expire_word_chain_turn", { p_match_id: room.id }), "Time expired. The turn has passed.");
   }
+  async function sendReaction(reaction: string) {
+    if (!room) return;
+    const { data, error: e } = await supabase!.rpc("send_word_chain_reaction", { p_match_id: room.id, p_reaction: reaction });
+    if (e) handleError(e); else accept(data);
+  }
+  async function inviteRematch() {
+    if (!room || rematchBusy) return;
+    setRematchBusy(true);
+    try {
+      const { data, error: e } = await supabase!.rpc("create_word_chain_room", { p_title: "Rematch • " + room.title, p_turn_seconds: 30, p_match_seconds: room.match_duration_seconds });
+      if (e) throw e;
+      accept(data); setWord(""); setRejection(null); setNotice("Rematch room created. Share the new room code with your opponent.");
+    } catch (e: any) { handleError(e); } finally { setRematchBusy(false); }
+  }
   async function finishMatch() {
     if (!room || busyRef.current) return;
     await action(() => supabase!.rpc("finish_word_chain_match", { p_match_id: room.id }));
@@ -162,6 +178,8 @@ export default function GamesScreen() {
   const previous = room?.game_state?.words?.[room.game_state.words.length - 1]?.word;
   const myTurn = !!room && room.game_state.current_turn_user_id === currentUserId;
   const counts = room?.players.map(p => ({ ...p, count: room.game_state.words.filter(w => w.user_id === p.user_id).length,
+    longest: Math.max(0, ...room.game_state.words.filter(w => w.user_id === p.user_id).map(w => w.word.length)),
+    missed: room.game_state.missed_turns?.[p.user_id] || 0,
     avg: room.game_state.words.filter(w => w.user_id === p.user_id).length
       ? Math.round(room.game_state.words.filter(w => w.user_id === p.user_id).reduce((n, w) => n + (w.response_ms || 0), 0) /
         room.game_state.words.filter(w => w.user_id === p.user_id).length) : 0 })) || [];
@@ -209,14 +227,16 @@ export default function GamesScreen() {
           </>}
         </>}
       </View>
+      {room.status === "in_progress" && <View style={s.card}><Text style={s.heading}>Quick reactions</Text><View style={s.reactionRow}>{["🔥","😂","👏","😮","💪","❤️"].map(x=><Pressable key={x} onPress={()=>void sendReaction(x)} style={s.reaction}><Text style={s.reactionEmoji}>{x}</Text></Pressable>)}</View>{(room.reactions || []).slice(0,4).map((r,i)=><Text key={r.created_at+i} style={s.muted}>{room.players.find(p=>p.user_id===r.user_id)?.display_name || "Player"} {r.reaction}</Text>)}</View>}
       {room.status === "in_progress" && <View style={s.card}><Text style={s.heading}>Live scores & speed</Text>
-        {counts.map(p => <View key={p.user_id} style={s.scoreRow}><Text style={s.playerName}>{p.display_name}</Text><Text style={s.scoreValue}>{p.count} words</Text><Text style={s.muted}>Avg. {p.count ? (p.avg / 1000).toFixed(1) + "s" : "—"} per word</Text></View>)}
+        {counts.map(p => <View key={p.user_id} style={s.scoreRow}><Text style={s.playerName}>{p.display_name}</Text><Text style={s.scoreValue}>{p.count} words</Text><Text style={s.muted}>Avg. {p.count ? (p.avg / 1000).toFixed(1) + "s" : "—"} • Longest {p.longest} letters • Missed {p.missed}</Text></View>)}
       </View>}
       {room.status === "completed" && <View style={s.card}><Text style={s.heading}>Game complete</Text>
         {room.game_state.winner_user_id ? <Text style={s.turnName}>{room.players.find(p => p.user_id === room.game_state.winner_user_id)?.display_name || "Winner"} wins!</Text> : <Text style={s.turnName}>It’s a draw!</Text>}
         <Text style={s.muted}>Final score is based on valid words. Friendly-play points are saved; no club, zone or district score was awarded.</Text>
-        {counts.map(p => <View key={p.user_id} style={s.scoreRow}><Text style={s.playerName}>{p.display_name}</Text><Text style={s.scoreValue}>{p.count} valid words</Text><Text style={s.muted}>Average response: {p.count ? (p.avg / 1000).toFixed(1) + "s" : "—"}</Text></View>)}
+        {counts.map(p => <View key={p.user_id} style={s.scoreRow}><Text style={s.playerName}>{p.display_name}</Text><Text style={s.scoreValue}>{p.count} valid words</Text><Text style={s.muted}>Average {p.count ? (p.avg / 1000).toFixed(1) + "s" : "—"} • Longest {p.longest} letters • Missed turns {p.missed}</Text></View>)}
       </View>}
+        <Pressable disabled={rematchBusy} onPress={()=>void inviteRematch()} style={s.primary}><Text style={s.primaryText}>{rematchBusy ? "Creating rematch…" : "Create rematch room"}</Text></Pressable>
       <Text style={s.section}>Word chain ({room.game_state.words?.length || 0})</Text>
       {(room.game_state.words || []).length === 0 ? <Text style={s.muted}>The first player can begin with any word.</Text> :
         (room.game_state.words || []).map((w, i) => <View key={w.turn} style={s.wordRow}><Text style={s.wordIndex}>{i + 1}</Text>
@@ -247,5 +267,6 @@ const s = StyleSheet.create({
  letter:{fontWeight:"900",color:"#176B45",fontSize:16},section:{fontSize:19,color:"#153B30",fontWeight:"900",marginTop:20,marginBottom:9},
  wordRow:{backgroundColor:"#fff",borderRadius:11,padding:13,marginBottom:7,flexDirection:"row",alignItems:"center",gap:10,flexWrap:"wrap"},
  wordIndex:{color:"#B17B27",fontWeight:"900"},wordText:{color:"#153B30",fontSize:16,fontWeight:"900",flex:1},
+ reactionRow:{flexDirection:"row",gap:10,marginTop:12,marginBottom:8,flexWrap:"wrap"},reaction:{backgroundColor:"#F1F6F2",borderRadius:24,padding:10},reactionEmoji:{fontSize:22},
  scoreRow:{borderTopWidth:1,borderTopColor:"#E8EEE9",paddingVertical:11,marginTop:8},scoreValue:{color:"#176B45",fontWeight:"900",marginTop:4}
 });
