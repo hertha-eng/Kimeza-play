@@ -99,7 +99,7 @@ export default function GamesScreen() {
 
   async function create() {
     await action(() => supabase!.rpc("create_word_chain_room", {
-      p_title: title, p_turn_seconds: 10, p_match_seconds: duration
+      p_title: title, p_turn_seconds: 30, p_match_seconds: duration
     }), "Room created. Share the code with one other active club member.");
   }
   async function join() {
@@ -108,13 +108,13 @@ export default function GamesScreen() {
   async function start() {
     if (!room) return;
     startedTyping.current = false; autoSubmittedFor.current = "";
-    await action(() => supabase!.rpc("start_word_chain_room", { p_match_id: room.id }), "Game started. You have 3 seconds to begin typing and 10 seconds to submit.");
+    await action(() => supabase!.rpc("start_word_chain_room", { p_match_id: room.id }), "Game started. Each player has 30 seconds to enter and submit a word.");
   }
   async function beginTyping() {
     if (!room || startedTyping.current || room.game_state.current_turn_user_id !== currentUserId) return;
     startedTyping.current = true;
     const { data, error: e } = await supabase!.rpc("begin_word_chain_turn", { p_match_id: room.id });
-    if (e) { startedTyping.current = false; setError(e.message); setWord(""); }
+    if (e) { startedTyping.current = false; setError(e.message); }
     else accept(data);
   }
   async function submitWord(automatic = false) {
@@ -190,8 +190,8 @@ export default function GamesScreen() {
           <View style={s.clockRow}><View style={s.clock}><Text style={s.muted}>MATCH TIME LEFT</Text><Text style={s.matchTimer}>{Math.floor(matchSeconds / 60)}:{String(matchSeconds % 60).padStart(2, "0")}</Text></View>
             <View style={s.clock}><Text style={s.muted}>YOUR TURN CLOCK</Text><Text style={s.timer}>{seconds}s</Text></View></View>
           <View style={s.turn}><Text style={s.muted}>CURRENT TURN</Text><Text style={s.turnName}>{currentPlayer?.display_name || "Player"}</Text>
-            <Text style={s.muted}>{myTurn ? "Your turn. Start typing within 3 seconds; your text auto-submits at 10 seconds." : "Waiting for your opponent."}</Text></View>
-          {myTurn && <><Text style={s.muted}>Typing must begin before the 3-second start deadline.</Text>
+            <Text style={s.muted}>{myTurn ? "Your turn. You have 30 seconds to enter and submit your word." : "Waiting for your opponent."}</Text></View>
+          {myTurn && <>
             {previous && <Text style={s.muted}>Your word must begin with <Text style={s.letter}>{previous.slice(-1).toUpperCase()}</Text></Text>}
             <TextInput value={word} onChangeText={v => { setWord(v); setRejection(null); if (v.length > 0) void beginTyping(); }} style={s.input}
               placeholder="Start typing a word…" autoCapitalize="none" editable={!busy && seconds > 0} />
