@@ -3,7 +3,7 @@ import { Link } from "expo-router";
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { supabase } from "../src/lib/supabase";
 
-type Room = { id:string; club_id:string; title:string; status:string; break_duration_seconds:number; opened_at:string; clubs?:{name:string}|null };
+type Room = { id:string; club_id:string; title:string; status:string; break_duration_seconds:number; opened_at:string; club_name?:string|null; member_count?:number; clubs?:{name:string}|null };
 type Member = { user_id:string; member_kind:string; home_club_id:string|null; profiles?:{display_name:string}|null };
 type Message = { id:string; user_id:string; message:string; message_kind:string; created_at:string; profiles?:{display_name:string}|null };
 type Challenge = { id:string; challenger_id:string; challenged_id:string|null; game_code:string; queue_position:number; status:string; created_at:string };
@@ -26,7 +26,7 @@ export default function FellowshipScreen(){
   const uid=auth.user.id;setUserId(uid);
   const [membershipResult,roomResult]=await Promise.all([
    supabase.from("club_memberships").select("club_id").eq("user_id",uid).eq("status","active").limit(1).maybeSingle(),
-   supabase.from("fellowship_rooms").select("id,club_id,title,status,break_duration_seconds,opened_at,clubs(name)").neq("status","closed").order("opened_at",{ascending:false}).limit(50)
+   supabase.rpc("list_open_fellowship_rooms")
   ]);
   if(membershipResult.error)setError(membershipResult.error.message);
   if(membershipResult.data?.club_id){setClubId(membershipResult.data.club_id);const {data:c}=await supabase.from("clubs").select("name").eq("id",membershipResult.data.club_id).maybeSingle();setClubName(c?.name||"My club");}
@@ -102,7 +102,7 @@ export default function FellowshipScreen(){
   {loading?<View style={s.loading}><ActivityIndicator size="large" color="#176B45"/><Text style={s.muted}>Finding fellowship rooms…</Text></View>:room?<>
    <View style={s.hero}>
     <View style={s.heroTop}><View style={s.liveDot}/><Text style={s.liveLabel}>ROOM OPEN</Text><View style={{flex:1}}/><Pressable onPress={()=>void leaveRoom()} disabled={busy} style={s.leave}><Text style={s.leaveText}>Leave room</Text></Pressable></View>
-    <Text style={s.heroTitle}>{room.title}</Text><Text style={s.heroSub}>{room.clubs?.name||clubName||"Club fellowship"}  ·  {room.status.replace("_"," ")}</Text>
+    <Text style={s.heroTitle}>{room.title}</Text><Text style={s.heroSub}>{room.club_name||room.clubs?.name||clubName||"Club fellowship"}  ·  {room.status.replace("_"," ")}</Text>
     <View style={s.heroStats}><View><Text style={s.statValue}>{members.length}</Text><Text style={s.statLabel}>In the room</Text></View><View><Text style={s.statValue}>{queue.length}</Text><Text style={s.statLabel}>Match requests</Text></View><View><Text style={s.statValue}>{Math.round(room.break_duration_seconds/60)}m</Text><Text style={s.statLabel}>Break setting</Text></View></View>
    </View>
    <View style={s.card}><Text style={s.sectionTitle}>People here</Text><Text style={s.muted}>Visitors keep their home-club identity. Being here does not automatically award host-club points.</Text>
@@ -127,7 +127,7 @@ export default function FellowshipScreen(){
     <Pressable onPress={()=>void createRoom()} disabled={busy} style={[s.primary,busy&&s.disabled]}><Text style={s.primaryText}>{busy?"Creating…":"Create fellowship room"}</Text></Pressable>
    </View>}
    <View style={s.listHeader}><Text style={s.sectionTitle}>Open rooms</Text><Pressable onPress={()=>void refresh()}><Text style={s.refreshText}>Refresh</Text></Pressable></View>
-   {rooms.length===0?<View style={s.emptyCard}><Text style={s.emptyTitle}>No rooms are open yet</Text><Text style={s.muted}>When a club opens a fellowship room, it will appear here. You can visit rooms hosted by other clubs.</Text></View>:rooms.map(r=><View key={r.id} style={s.roomCard}><View style={s.roomIcon}><Text style={{fontSize:21}}>♧</Text></View><View style={{flex:1}}><Text style={s.roomTitle}>{r.title}</Text><Text style={s.muted}>{r.clubs?.name||"Club"}  ·  Break {Math.round(r.break_duration_seconds/60)} min</Text><Text style={s.roomStatus}>{r.status==="social"?"SOCIAL BREAK":"GAME IN PROGRESS"}</Text></View><Pressable onPress={()=>void joinRoom(r)} disabled={busy} style={s.join}><Text style={s.joinText}>Join</Text></Pressable></View>)}
+   {rooms.length===0?<View style={s.emptyCard}><Text style={s.emptyTitle}>No rooms are open yet</Text><Text style={s.muted}>When a club opens a fellowship room, it will appear here. You can visit rooms hosted by other clubs.</Text></View>:rooms.map(r=><View key={r.id} style={s.roomCard}><View style={s.roomIcon}><Text style={{fontSize:21}}>♧</Text></View><View style={{flex:1}}><Text style={s.roomTitle}>{r.title}</Text><Text style={s.muted}>{r.club_name||r.clubs?.name||"Club"}  ·  Break {Math.round(r.break_duration_seconds/60)} min</Text><Text style={s.roomStatus}>{r.status==="social"?"SOCIAL BREAK":"GAME IN PROGRESS"}</Text></View><Pressable onPress={()=>void joinRoom(r)} disabled={busy} style={s.join}><Text style={s.joinText}>Join</Text></Pressable></View>)}
   </>}
  </View></ScrollView>;
 }
