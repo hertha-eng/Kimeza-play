@@ -68,7 +68,7 @@ export function rollLudoDice(state:LudoState, random=Math.random):LudoState {
   if(state.winner_user_id) throw new Error("This game has finished.");
   if(state.dice_rolled) throw new Error("Move a token before rolling again.");
   const value=Math.floor(random()*6)+1;
-  const next={...state,dice_value:value,dice_rolled:true};
+  const next: LudoState={...state,dice_value:value,dice_rolled:true};
   if(value===6 && state.consecutive_sixes>=2){
     next.dice_value=null;next.dice_rolled=false;next.consecutive_sixes=0;
     next.current_player_index=(state.current_player_index+1)%state.players.length;
