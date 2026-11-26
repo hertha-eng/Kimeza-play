@@ -11,7 +11,7 @@ export default function GamesLibraryScreen() {
 
   // Keep existing room invitations and shared links working after the library is introduced.
   useEffect(() => {
-    if (params.room) router.replace(`/games/word-chain?room=${encodeURIComponent(params.room)}`);
+    if (params.room) router.replace({ pathname: "/games/word-chain", params: { room: params.room } });
   }, [params.room, router]);
 
   const filteredGames = useMemo(() => {
