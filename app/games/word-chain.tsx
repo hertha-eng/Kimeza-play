@@ -277,5 +277,5 @@ const s = StyleSheet.create({
  wordRow:{backgroundColor:"#fff",borderRadius:11,padding:13,marginBottom:7,flexDirection:"row",alignItems:"center",gap:10,flexWrap:"wrap"},
  wordIndex:{color:"#B17B27",fontWeight:"900"},wordText:{color:"#153B30",fontSize:16,fontWeight:"900",flex:1},
  reactionRow:{flexDirection:"row",gap:10,marginTop:12,marginBottom:8,flexWrap:"wrap"},reaction:{backgroundColor:"#F1F6F2",borderRadius:24,padding:10},reactionEmoji:{fontSize:22},
- scoreRow:{borderTopWidth:1,borderTopColor:"#E8EEE9",paddingVertical:11,marginTop:8},scoreValue:{color:"#176B45",fontWeight:"900",marginTop:4}
+ scoreRow:{borderTopWidth:1,borderTopColor:"#E8EEE9",paddingVertical:11,marginTop:8},scoreValue:{color:"#176B45",fontWeight:"900",marginTop:4},cancelRoom:{backgroundColor:"#FCEBE9",borderWidth:1,borderColor:"#F2C5C0",borderRadius:11,padding:13,alignItems:"center",marginTop:10},cancelRoomText:{color:"#B42318",fontWeight:"900"}
 });
