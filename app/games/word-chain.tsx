@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocalSearchParams, useRouter } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { supabase } from "../src/lib/supabase";
+import { supabase } from "../../src/lib/supabase";
 
 type Player = { user_id: string; display_name: string; joined_at: string };
 type Word = { word: string; user_id: string; turn: number; played_at: string; response_ms?: number };
