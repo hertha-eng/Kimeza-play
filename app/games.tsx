@@ -12,7 +12,7 @@ type GameState = {
   turn_started_at?: string; live_draft_user_id?: string | null; live_draft?: string | null; winner_user_id?: string | null; end_reason?: string;
   final_counts?: Record<string, number>; missed_turns?: Record<string, number>; streaks?: Record<string, number>;
 };
-type Room = { id: string; title: string; game_code: string; status: string; room_code: string;
+type Room = { id: string; title: string; game_code: string; status: string; room_code: string; created_by: string; room_expires_at?: string | null;
   max_players: number; turn_duration_seconds: number; match_duration_seconds: number; game_state: GameState; players: Player[]; reactions?: Reaction[] };
 
 const DURATIONS = [{ label: "2 min", value: 120 }, { label: "3 min", value: 180 }, { label: "5 min", value: 300 }, { label: "10 min", value: 600 }, { label: "15 min", value: 900 }];
@@ -173,6 +173,10 @@ export default function GamesScreen() {
     if (!room || busyRef.current) return;
     await action(() => supabase!.rpc("finish_word_chain_match", { p_match_id: room.id }));
   }
+  async function closeRoom() {
+    if (!room || room.created_by !== currentUserId || room.status !== "open") return;
+    await action(() => supabase!.rpc("close_word_chain_room", { p_match_id: room.id }), "Room closed. Its history has been retained.");
+  }
 
   const currentPlayer = room?.players.find(p => p.user_id === room.game_state.current_turn_user_id);
   const previous = room?.game_state?.words?.[room.game_state.words.length - 1]?.word;
@@ -213,7 +217,9 @@ export default function GamesScreen() {
         <Text style={s.muted}>{room.players.length} of 2 players joined • {room.status.replace("_", " ")}</Text>
         {room.players.map((p, i) => <View key={p.user_id} style={s.player}><Text style={s.playerName}>{p.display_name || "Kimeza member"}</Text><Text style={s.muted}>Player {i + 1}</Text></View>)}
         {room.status === "open" && <><Text style={s.durationSummary}>Match length: {Math.round(room.match_duration_seconds / 60)} minutes</Text>
-          <Pressable disabled={busy || room.players.length !== 2} onPress={start} style={[s.primary, (busy || room.players.length !== 2) && s.disabled]}><Text style={s.primaryText}>Start game</Text></Pressable></>}
+          {!!room.room_expires_at && <Text style={s.muted}>This waiting room expires {new Date(room.room_expires_at).toLocaleString()} if the game is not started.</Text>}
+          <Pressable disabled={busy || room.players.length !== 2} onPress={start} style={[s.primary, (busy || room.players.length !== 2) && s.disabled]}><Text style={s.primaryText}>Start game</Text></Pressable>
+          {room.created_by === currentUserId && <Pressable disabled={busy} onPress={()=>void closeRoom()} style={s.cancelRoom}><Text style={s.cancelRoomText}>Close this room</Text></Pressable>}</>}
         {room.status === "in_progress" && <>
           <View style={s.clockRow}><View style={s.clock}><Text style={s.muted}>MATCH TIME LEFT</Text><Text style={s.matchTimer}>{Math.floor(matchSeconds / 60)}:{String(matchSeconds % 60).padStart(2, "0")}</Text></View>
             <View style={s.clock}><Text style={s.muted}>YOUR TURN CLOCK</Text><Text style={s.timer}>{room.game_state.turn_deadline ? `${seconds}s` : (myTurn ? "READY" : "—")}</Text></View></View>
@@ -233,6 +239,7 @@ export default function GamesScreen() {
       {room.status === "in_progress" && <View style={s.card}><Text style={s.heading}>Live scores & speed</Text>
         {counts.map(p => <View key={p.user_id} style={s.scoreRow}><Text style={s.playerName}>{p.display_name}</Text><Text style={s.scoreValue}>{p.count} words</Text><Text style={s.muted}>Avg. {p.count ? (p.avg / 1000).toFixed(1) + "s" : "—"} • Fastest {p.fastest ? (p.fastest / 1000).toFixed(1) + "s" : "—"} • Longest {p.longest} letters • Streak {p.streak} • Missed {p.missed}</Text></View>)}
       </View>}
+      {room.status === "cancelled" && <View style={s.card}><Text style={s.heading}>Room closed</Text><Text style={s.muted}>This room is no longer available to join. Its match history has been retained.</Text></View>}
       {room.status === "completed" && <View style={s.card}><Text style={s.heading}>Game complete</Text>
         {room.game_state.winner_user_id ? <Text style={s.turnName}>{room.players.find(p => p.user_id === room.game_state.winner_user_id)?.display_name || "Winner"} wins!</Text> : <Text style={s.turnName}>It’s a draw!</Text>}
         <Text style={s.muted}>Final score is based on valid words. Friendly-play points are saved; no club, zone or district score was awarded.</Text>
