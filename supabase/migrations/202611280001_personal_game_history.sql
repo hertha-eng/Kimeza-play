@@ -1,8 +1,9 @@
 -- Personal Game History
 -- Members can retrieve only completed Word Play matches in which they participated.
 -- Opponent details are limited to display names for those same matches.
+-- The privileged reader lives in the non-exposed private schema.
 
-create or replace function public.get_my_game_history()
+create or replace function private.get_my_game_history()
 returns jsonb
 language plpgsql
 security definer
@@ -75,6 +76,21 @@ begin
 
   return v_history;
 end;
+$$;
+
+revoke all on function private.get_my_game_history() from public, anon;
+grant usage on schema private to authenticated;
+grant execute on function private.get_my_game_history() to authenticated;
+
+-- Exposed RPC wrapper runs with caller privileges and delegates to the
+-- narrowly scoped private helper, which independently checks auth.uid().
+create or replace function public.get_my_game_history()
+returns jsonb
+language sql
+security invoker
+set search_path = ''
+as $$
+  select private.get_my_game_history();
 $$;
 
 revoke all on function public.get_my_game_history() from public, anon;
