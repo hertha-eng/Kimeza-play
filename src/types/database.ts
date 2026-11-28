@@ -663,6 +663,8 @@ export type Database = {
       respond_game_challenge: { Args: { p_challenge_id: string; p_accept: boolean }; Returns: Json }
       get_game_room_challenges: { Args: { p_room_session_id: string }; Returns: Json }
       launch_next_game_challenge: { Args: { p_room_session_id: string }; Returns: Json }
+      watch_game_room_match: { Args: { p_match_id: string }; Returns: Json }
+      send_word_chain_reaction: { Args: { p_match_id: string; p_reaction: string }; Returns: Json }
       invite_match_watcher: { Args: { p_match_id: string; p_user_id: string }; Returns: Json }
       join_match_as_watcher: { Args: { p_match_id: string }; Returns: Json }
       leave_match_watcher: { Args: { p_match_id: string }; Returns: undefined }
