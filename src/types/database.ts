@@ -217,6 +217,75 @@ export type Database = {
           },
         ]
       }
+      game_room_sessions: {
+        Row: {
+          id: string; title: string; created_by: string; room_code: string | null;
+          status: "open" | "closed"; expires_at: string | null; created_at: string; closed_at: string | null;
+        };
+        Insert: {
+          id?: string; title: string; created_by: string; room_code?: string | null;
+          status?: "open" | "closed"; expires_at?: string | null; created_at?: string; closed_at?: string | null;
+        };
+        Update: {
+          id?: string; title?: string; created_by?: string; room_code?: string | null;
+          status?: "open" | "closed"; expires_at?: string | null; created_at?: string; closed_at?: string | null;
+        };
+        Relationships: [];
+      }
+      game_room_members: {
+        Row: {
+          id: string; room_session_id: string; user_id: string; member_role: "player" | "watcher";
+          status: "invited" | "active" | "left" | "revoked"; invited_by: string; invited_at: string;
+          joined_at: string | null; left_at: string | null;
+        };
+        Insert: {
+          id?: string; room_session_id: string; user_id: string; member_role: "player" | "watcher";
+          status?: "invited" | "active" | "left" | "revoked"; invited_by: string; invited_at?: string;
+          joined_at?: string | null; left_at?: string | null;
+        };
+        Update: {
+          id?: string; room_session_id?: string; user_id?: string; member_role?: "player" | "watcher";
+          status?: "invited" | "active" | "left" | "revoked"; invited_by?: string; invited_at?: string;
+          joined_at?: string | null; left_at?: string | null;
+        };
+        Relationships: [];
+      }
+      game_challenges: {
+        Row: {
+          id: string; room_session_id: string; game_code: string; challenger_id: string; challenged_id: string;
+          status: "pending" | "accepted" | "declined" | "cancelled" | "expired" | "launched";
+          queue_position: number | null; created_at: string; responded_at: string | null;
+          accepted_at: string | null; launched_at: string | null; launched_match_id: string | null;
+        };
+        Insert: {
+          id?: string; room_session_id: string; game_code: string; challenger_id: string; challenged_id: string;
+          status?: "pending" | "accepted" | "declined" | "cancelled" | "expired" | "launched";
+          queue_position?: number | null; created_at?: string; responded_at?: string | null;
+          accepted_at?: string | null; launched_at?: string | null; launched_match_id?: string | null;
+        };
+        Update: {
+          id?: string; room_session_id?: string; game_code?: string; challenger_id?: string; challenged_id?: string;
+          status?: "pending" | "accepted" | "declined" | "cancelled" | "expired" | "launched";
+          queue_position?: number | null; created_at?: string; responded_at?: string | null;
+          accepted_at?: string | null; launched_at?: string | null; launched_match_id?: string | null;
+        };
+        Relationships: [];
+      }
+      match_watchers: {
+        Row: {
+          id: string; match_id: string; user_id: string; invited_by: string; status: "invited" | "watching" | "left" | "revoked";
+          invited_at: string; joined_at: string | null; left_at: string | null;
+        };
+        Insert: {
+          id?: string; match_id: string; user_id: string; invited_by: string;
+          status?: "invited" | "watching" | "left" | "revoked"; invited_at?: string; joined_at?: string | null; left_at?: string | null;
+        };
+        Update: {
+          id?: string; match_id?: string; user_id?: string; invited_by?: string;
+          status?: "invited" | "watching" | "left" | "revoked"; invited_at?: string; joined_at?: string | null; left_at?: string | null;
+        };
+        Relationships: [];
+      }
       districts: {
         Row: {
           country_code: string | null
@@ -251,6 +320,8 @@ export type Database = {
           representation_locked_at: string | null
           represented_entity_id: string | null
           user_id: string
+          is_ready: boolean
+          ready_at: string | null
         }
         Insert: {
           buddy_group_id?: string | null
@@ -261,6 +332,8 @@ export type Database = {
           representation_locked_at?: string | null
           represented_entity_id?: string | null
           user_id: string
+          is_ready?: boolean
+          ready_at?: string | null
         }
         Update: {
           buddy_group_id?: string | null
@@ -308,6 +381,14 @@ export type Database = {
           starts_at: string | null
           status: Database["public"]["Enums"]["match_status"]
           title: string
+          room_code: string | null
+          game_state: Json
+          max_players: number
+          min_players: number
+          turn_duration_seconds: number
+          match_duration_seconds: number
+          room_expires_at: string | null
+          room_session_id: string | null
         }
         Insert: {
           created_at?: string
@@ -320,6 +401,14 @@ export type Database = {
           starts_at?: string | null
           status?: Database["public"]["Enums"]["match_status"]
           title: string
+          room_code?: string | null
+          game_state?: Json
+          max_players?: number
+          min_players?: number
+          turn_duration_seconds?: number
+          match_duration_seconds?: number
+          room_expires_at?: string | null
+          room_session_id?: string | null
         }
         Update: {
           created_at?: string
@@ -332,6 +421,14 @@ export type Database = {
           starts_at?: string | null
           status?: Database["public"]["Enums"]["match_status"]
           title?: string
+          room_code?: string | null
+          game_state?: Json
+          max_players?: number
+          min_players?: number
+          turn_duration_seconds?: number
+          match_duration_seconds?: number
+          room_expires_at?: string | null
+          room_session_id?: string | null
         }
         Relationships: [
           {
@@ -553,6 +650,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_game_room_session: { Args: { p_title: string; p_expires_minutes?: number }; Returns: Json }
+      join_game_room_session: { Args: { p_room_code: string }; Returns: Json }
+      invite_game_room_member: { Args: { p_room_session_id: string; p_user_id: string }; Returns: Json }
+      accept_game_room_invitation: { Args: { p_room_session_id: string }; Returns: Json }
+      leave_game_room_session: { Args: { p_room_session_id: string }; Returns: undefined }
+      close_game_room_session: { Args: { p_room_session_id: string }; Returns: undefined }
+      get_game_room_session: { Args: { p_room_session_id: string }; Returns: Json }
+      create_game_challenge: { Args: { p_room_session_id: string; p_game_code: string; p_challenged_id: string }; Returns: Json }
+      respond_game_challenge: { Args: { p_challenge_id: string; p_accept: boolean }; Returns: Json }
+      get_game_room_challenges: { Args: { p_room_session_id: string }; Returns: Json }
+      launch_next_game_challenge: { Args: { p_room_session_id: string }; Returns: Json }
+      invite_match_watcher: { Args: { p_match_id: string; p_user_id: string }; Returns: Json }
+      join_match_as_watcher: { Args: { p_match_id: string }; Returns: Json }
+      leave_match_watcher: { Args: { p_match_id: string }; Returns: undefined }
+      revoke_match_watcher_invitation: { Args: { p_match_id: string; p_user_id: string }; Returns: undefined }
       appoint_club_admin: {
         Args: { p_club_id: string; p_user_id: string }
         Returns: string
