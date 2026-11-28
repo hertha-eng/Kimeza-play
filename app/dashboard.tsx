@@ -93,6 +93,7 @@ export default function DashboardScreen() {
           <Text style={styles.sectionTitle}>Your Kimeza space</Text>
           <View style={styles.grid}>
             <Pressable onPress={() => router.push("/games")} style={styles.feature}><Text style={styles.featureTitle}>Games</Text><Text style={styles.featureText}>Explore all 28 games across four categories. Play available games and discover what is coming next.</Text><Text style={styles.coming}>EXPLORE GAMES  ›</Text></Pressable>
+            <Pressable onPress={() => router.push("/game-history")} style={styles.feature}><Text style={styles.featureTitle}>My Game History</Text><Text style={styles.featureText}>Review completed matches, opponents, results and points recorded on your account.</Text><Text style={styles.coming}>VIEW GAME HISTORY  ›</Text></Pressable>
             <View style={styles.feature}><Text style={styles.featureTitle}>Buddy Groups</Text><Text style={styles.featureText}>Create cross-club fellowship groups with friends.</Text><Text style={styles.coming}>COMING NEXT</Text></View>
             <View style={styles.feature}><Text style={styles.featureTitle}>Competitions</Text><Text style={styles.featureText}>Follow official club, zone and district events.</Text><Text style={styles.coming}>COMING NEXT</Text></View>
             <View style={styles.feature}><Text style={styles.featureTitle}>My profile</Text><Text style={styles.featureText}>Account: {session?.user.email}</Text><Text style={styles.coming}>PROFILE ACTIVE</Text></View>
