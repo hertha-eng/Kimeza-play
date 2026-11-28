@@ -21,6 +21,7 @@ export default function GamesScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ room?: string }>();
   const [room, setRoom] = useState<Room | null>(null);
+  const [showRules, setShowRules] = useState(false);
   const [code, setCode] = useState("");
   const [title, setTitle] = useState("Word Chain");
   const [word, setWord] = useState("");
@@ -194,6 +195,34 @@ export default function GamesScreen() {
     <Link href="/dashboard" style={s.back}>‹  Back to dashboard</Link>
     <Text style={s.eyebrow}>KIMEZA PLAY • GAMES</Text><Text style={s.title}>Word Chain</Text>
     <Text style={s.subtitle}>Build a chain of dictionary-verified words. Each word must begin with the last letter of the previous word.</Text>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ expanded: showRules }}
+      onPress={() => setShowRules(value => !value)}
+      style={s.rulesToggle}
+    >
+      <Text style={s.rulesToggleText}>{showRules ? "Hide instructions" : "How to Play & Rules"} {showRules ? "−" : "+"}</Text>
+    </Pressable>
+    {showRules && <View style={s.rulesCard}>
+      <Text style={s.rulesHeading}>The objective</Text>
+      <Text style={s.rulesText}>Build the longest valid chain of words before the match timer runs out. The player with the most accepted words wins.</Text>
+
+      <Text style={s.rulesHeading}>How to play</Text>
+      <Text style={s.rulesText}>1. Create a room and choose a match length, or join another member using their six-character room code.</Text>
+      <Text style={s.rulesText}>2. A room needs two players. The room creator starts the match once both players have joined.</Text>
+      <Text style={s.rulesText}>3. The first player may begin with any valid English word. After that, each word must start with the final letter of the previous accepted word.</Text>
+      <Text style={s.rulesText}>4. Take turns entering and submitting one word. You have 30 seconds for each turn.</Text>
+
+      <Text style={s.rulesHeading}>Word rules</Text>
+      <Text style={s.rulesText}>• Use one English word containing 2–24 letters.</Text>
+      <Text style={s.rulesText}>• Every word must be verified by the game's dictionary.</Text>
+      <Text style={s.rulesText}>• A word cannot be used more than once in the same match.</Text>
+      <Text style={s.rulesText}>• If a word is invalid or a turn expires, that turn is passed to the other player.</Text>
+
+      <Text style={s.rulesHeading}>Scoring and winning</Text>
+      <Text style={s.rulesText}>Each accepted word adds one to that player's word count. When the selected match time ends, the player with more accepted words wins. If both players have the same number, the match is a draw.</Text>
+      <Text style={s.rulesNote}>Word Chain is currently a friendly-play game. Casual matches do not add points to club, zone or district leaderboards.</Text>
+    </View>}
     {!!error && <Text style={s.error}>{error}</Text>}{!!notice && <Text style={s.notice}>{notice}</Text>}
     {room?.status === "in_progress" && rejection && <View style={s.rejection}><Text style={s.rejectionTitle}>WORD NOT ACCEPTED</Text><Text style={s.rejectionWord}>“{rejection.word}”</Text><Text style={s.rejectionReason}>Reason: {rejection.reason}</Text><Text style={s.rejectionHint}>No point was awarded. The turn has moved to the next player.</Text></View>}
     {!room ? <>
@@ -258,6 +287,12 @@ const s = StyleSheet.create({
  page:{flexGrow:1,backgroundColor:"#F4F7F3",padding:18},shell:{width:"100%",maxWidth:760,alignSelf:"center",paddingVertical:20},
  back:{color:"#557168",fontWeight:"700",marginBottom:24},eyebrow:{color:"#B17B27",fontSize:10,fontWeight:"900",letterSpacing:2},
  title:{color:"#102A24",fontSize:30,fontWeight:"900",marginTop:7},subtitle:{color:"#66756D",lineHeight:22,marginTop:8,marginBottom:18},
+ rulesToggle:{alignSelf:"flex-start",backgroundColor:"#E7F0E9",borderWidth:1,borderColor:"#C9D9CC",borderRadius:10,paddingVertical:10,paddingHorizontal:14,marginBottom:14},
+ rulesToggleText:{color:"#176B45",fontWeight:"900",fontSize:12},
+ rulesCard:{backgroundColor:"#FFFFFF",borderWidth:1,borderColor:"#DCE5DE",borderRadius:14,padding:16,marginBottom:16},
+ rulesHeading:{color:"#153B30",fontSize:14,fontWeight:"900",marginTop:10,marginBottom:4},
+ rulesText:{color:"#52665B",fontSize:12,lineHeight:19,marginTop:4},
+ rulesNote:{color:"#176B45",fontSize:11,lineHeight:18,fontWeight:"700",backgroundColor:"#F0F6F0",padding:10,borderRadius:9,marginTop:12},
  card:{backgroundColor:"#fff",borderRadius:16,borderWidth:1,borderColor:"#E2E9E3",padding:18,marginBottom:14},
  heading:{color:"#153B30",fontSize:18,fontWeight:"900"},muted:{color:"#68776F",fontSize:12,lineHeight:19,marginTop:5},
  label:{color:"#68776F",fontSize:10,fontWeight:"900",letterSpacing:1,marginTop:5},input:{backgroundColor:"#F8FAF8",borderWidth:1,borderColor:"#DCE5DE",borderRadius:11,padding:14,color:"#18352C",marginTop:14,marginBottom:12},
