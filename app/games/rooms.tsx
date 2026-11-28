@@ -245,11 +245,15 @@ export default function GameRoomsScreen() {
               </View>
               <Text style={s.muted}>{challenge.game_code==="word_chain"?"Word Chain":challenge.game_code} · {challenge.status==="launched"?"Match created":`Queue position ${challenge.queue_position}`}</Text>
               {challenge.status==="launched" && challenge.launched_match_id &&
-                (challenge.challenger_id===currentUserId||challenge.challenged_id===currentUserId) &&
                 <Pressable disabled={launchBusyId===challenge.id} onPress={()=>{
                   setLaunchBusyId(challenge.id);
-                  router.push({pathname:"/games/word-chain",params:{room:challenge.launched_match_id!}});
-                }} style={s.secondary}><Text style={s.secondaryText}>Open match</Text></Pressable>}
+                  const isPlayer = challenge.challenger_id===currentUserId||challenge.challenged_id===currentUserId;
+                  router.push(isPlayer
+                    ? {pathname:"/games/word-chain",params:{room:challenge.launched_match_id!}}
+                    : {pathname:"/gallery",params:{match:challenge.launched_match_id!}});
+                }} style={s.secondary}><Text style={s.secondaryText}>
+                  {challenge.challenger_id===currentUserId||challenge.challenged_id===currentUserId?"Open match":"Watch match"}
+                </Text></Pressable>}
             </View>)}
         </View>
 
