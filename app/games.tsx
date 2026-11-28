@@ -33,6 +33,14 @@ export default function GamesLibraryScreen() {
       <Text style={s.title}>Games Library</Text>
       <Text style={s.subtitle}>Choose a game, invite fellow members and enjoy some friendly competition. More games will be added over time.</Text>
 
+      <Pressable onPress={() => router.push("/games/rooms")} style={s.roomHub}>
+        <View style={s.roomHubCopy}>
+          <Text style={s.roomHubTitle}>Universal Game Rooms</Text>
+          <Text style={s.roomHubText}>Create a shared room, meet members, challenge players or watchers, and follow the queue.</Text>
+        </View>
+        <Text style={s.roomHubArrow}>OPEN  ›</Text>
+      </Pressable>
+
       <View style={s.summary}>
         <View><Text style={s.summaryNumber}>{GAME_CATALOG.length}</Text><Text style={s.summaryLabel}>GAMES IN THE COLLECTION</Text></View>
         <View style={s.summaryDivider} />
@@ -97,6 +105,11 @@ const s = StyleSheet.create({
   eyebrow: { color: "#B17B27", fontSize: 10, fontWeight: "900", letterSpacing: 2 },
   title: { color: "#102A24", fontSize: 31, fontWeight: "900", marginTop: 7 },
   subtitle: { color: "#66756D", lineHeight: 22, marginTop: 8, marginBottom: 18, maxWidth: 680 },
+  roomHub: { backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#9BC6A9", borderRadius: 14, padding: 16, marginBottom: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
+  roomHubCopy: { flex: 1 },
+  roomHubTitle: { color: "#153B30", fontSize: 15, fontWeight: "900" },
+  roomHubText: { color: "#68776F", fontSize: 11, lineHeight: 17, marginTop: 5 },
+  roomHubArrow: { color: "#176B45", fontSize: 10, fontWeight: "900", letterSpacing: 0.6 },
   summary: { flexDirection: "row", alignItems: "center", justifyContent: "space-around", backgroundColor: "#102A24", borderRadius: 16, padding: 16, marginBottom: 16 },
   summaryNumber: { color: "#E2B55F", fontSize: 24, fontWeight: "900", textAlign: "center" },
   summaryLabel: { color: "#D6E2DA", fontSize: 8, fontWeight: "900", letterSpacing: 0.7, textAlign: "center", marginTop: 4 },
