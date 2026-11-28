@@ -344,6 +344,8 @@ export type Database = {
           representation_locked_at?: string | null
           represented_entity_id?: string | null
           user_id?: string
+          is_ready?: boolean
+          ready_at?: string | null
         }
         Relationships: [
           {
