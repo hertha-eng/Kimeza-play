@@ -80,3 +80,72 @@ export type RoomReaction = {
   reaction: string;
   created_at: string;
 };
+
+
+export type RoomSessionStatus = "open" | "closed";
+export type RoomMemberRole = "player" | "watcher";
+export type RoomMemberStatus = "invited" | "active" | "left" | "revoked";
+
+export type GameRoomSession = {
+  id: string;
+  title: string;
+  created_by: string;
+  room_code: string | null;
+  status: RoomSessionStatus;
+  expires_at: string | null;
+  created_at: string;
+  closed_at: string | null;
+  members: GameRoomMember[];
+};
+
+export type GameRoomMember = {
+  user_id: string;
+  display_name: string;
+  avatar_url?: string | null;
+  member_role: RoomMemberRole;
+  status: RoomMemberStatus;
+  joined_at: string | null;
+};
+
+export type GameChallengeStatus =
+  | "pending"
+  | "accepted"
+  | "declined"
+  | "cancelled"
+  | "expired"
+  | "launched";
+
+export type GameChallenge = {
+  id: string;
+  room_session_id: string;
+  game_code: string;
+  challenger_id: string;
+  challenger_name: string;
+  challenged_id: string;
+  challenged_name: string;
+  status: GameChallengeStatus;
+  queue_position: number | null;
+  created_at: string;
+  accepted_at: string | null;
+  launched_at: string | null;
+  launched_match_id: string | null;
+};
+
+export type GameChallengeResponse = {
+  id: string;
+  room_session_id: string;
+  game_code: string;
+  challenger_id: string;
+  challenged_id: string;
+  status: GameChallengeStatus;
+  queue_position: number | null;
+  accepted_at: string | null;
+  responded_at: string;
+  launch?: {
+    launched: boolean;
+    reason?: string;
+    match_id?: string;
+    room_code?: string;
+    challenge_id?: string;
+  };
+};
