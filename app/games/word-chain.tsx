@@ -12,7 +12,7 @@ type GameState = {
   turn_started_at?: string; live_draft_user_id?: string | null; live_draft?: string | null; winner_user_id?: string | null; end_reason?: string;
   final_counts?: Record<string, number>; missed_turns?: Record<string, number>; streaks?: Record<string, number>;
 };
-type Room = { id: string; title: string; game_code: string; status: string; room_code: string; created_by: string; room_expires_at?: string | null;
+type Room = { id: string; title: string; game_code: string; status: string; room_code: string; room_session_id?: string | null; created_by: string; room_expires_at?: string | null;
   max_players: number; turn_duration_seconds: number; match_duration_seconds: number; game_state: GameState; players: Player[]; reactions?: Reaction[] };
 
 const DURATIONS = [{ label: "2 min", value: 120 }, { label: "3 min", value: 180 }, { label: "5 min", value: 300 }, { label: "10 min", value: 600 }, { label: "15 min", value: 900 }];
@@ -242,6 +242,9 @@ export default function GamesScreen() {
       <View style={s.roomHead}><View><Text style={s.muted}>ROOM CODE</Text><Text style={s.roomCode}>{room.room_code}</Text></View>
         <Pressable onPress={() => { setRoom(null); setWord(""); router.replace("/games"); }} style={s.leave}><Text style={s.secondaryText}>Close view</Text></Pressable>
       </View>
+      {!!room.room_session_id && <Pressable onPress={() => router.replace({ pathname: "/games/rooms", params: { room: room.room_session_id! } })} style={s.roomSessionLink}>
+        <Text style={s.roomSessionLinkText}>‹  Return to the shared game room</Text>
+      </Pressable>}
       <View style={s.card}><Text style={s.heading}>{room.title}</Text>
         <Text style={s.muted}>{room.players.length} of 2 players joined • {room.status.replace("_", " ")}</Text>
         {room.players.map((p, i) => <View key={p.user_id} style={s.player}><Text style={s.playerName}>{p.display_name || "Kimeza member"}</Text><Text style={s.muted}>Player {i + 1}</Text></View>)}
@@ -302,6 +305,8 @@ const s = StyleSheet.create({
  rejection:{backgroundColor:"#FFF1F0",borderWidth:1,borderColor:"#F2B8B5",padding:14,borderRadius:12,marginBottom:12},rejectionTitle:{color:"#B42318",fontWeight:"900",fontSize:11,letterSpacing:1},rejectionWord:{color:"#842029",fontWeight:"900",fontSize:18,marginTop:5},rejectionReason:{color:"#842029",fontSize:13,lineHeight:19,marginTop:5},rejectionHint:{color:"#8A4B48",fontSize:11,marginTop:6},error:{color:"#B42318",backgroundColor:"#FEF3F2",padding:12,borderRadius:10,marginBottom:12},notice:{color:"#176B45",backgroundColor:"#ECFDF3",padding:12,borderRadius:10,marginBottom:12},
  roomHead:{backgroundColor:"#102A24",borderRadius:15,padding:18,marginBottom:12,flexDirection:"row",justifyContent:"space-between",alignItems:"center"},
  roomCode:{color:"#E2B55F",fontSize:28,fontWeight:"900",letterSpacing:4},leave:{backgroundColor:"#fff",padding:10,borderRadius:9},
+ roomSessionLink:{backgroundColor:"#E7F0E9",borderRadius:10,padding:12,marginBottom:12,alignItems:"center"},
+ roomSessionLinkText:{color:"#176B45",fontWeight:"900",fontSize:12},
  player:{borderTopWidth:1,borderTopColor:"#E8EEE9",paddingVertical:12,marginTop:10},playerName:{color:"#153B30",fontWeight:"800"},
  disabled:{opacity:.45},durationRow:{flexDirection:"row",flexWrap:"wrap",gap:7,marginTop:10,marginBottom:10},duration:{borderWidth:1,borderColor:"#DCE5DE",borderRadius:9,paddingVertical:9,paddingHorizontal:12},
  durationActive:{backgroundColor:"#153B30",borderColor:"#153B30"},durationText:{color:"#36564A",fontWeight:"800"},durationTextActive:{color:"#fff"},
